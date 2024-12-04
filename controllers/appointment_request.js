@@ -1,7 +1,7 @@
 const _ = require('lodash');
-const {StatusCodes} = require('http-status-codes');
+const { StatusCodes } = require('http-status-codes');
 const model = require("../models/appointment_request");
-const {getPageNo, getPageSize} = require('../utils/helper');
+const { getPageNo, getPageSize } = require('../utils/helper');
 
 exports.getAll = async (req, res, next) => {
 	try {
@@ -19,11 +19,11 @@ exports.getAll = async (req, res, next) => {
 			};
 			res.status(StatusCodes.OK).send(result);
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
 		}
 	} catch (e) {
 		console.log(`Error in getAll`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -35,11 +35,11 @@ exports.getOne = async (req, res, next) => {
 		if (!_.isEmpty(data)) {
 			res.status(StatusCodes.OK).send(data[0]);
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
 		}
 	} catch (e) {
 		console.log(`Error in getById`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -47,13 +47,13 @@ exports.create = async (req, res, next) => {
 	try {
 		const data = await model.insert(req.body);
 		if (data) {
-			res.status(StatusCodes.CREATED).send({message:'Record created', data:data});
+			res.status(StatusCodes.CREATED).send({ message: 'Record created', data: data });
 		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad Request!"});
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
 		}
 	} catch (e) {
 		console.log(`Error in create`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -66,11 +66,11 @@ exports.update = async (req, res, next) => {
 		if (!_.isEmpty(data)) {
 			res.status(StatusCodes.OK).send(data[0]);
 		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad request."});
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
 		}
 	} catch (e) {
 		console.log(`Error in update`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -81,13 +81,13 @@ exports.remove = async (req, res, next) => {
 		//const id = req.params.id;
 		const data = await model.remove(id);
 		if (data) {
-			res.status(StatusCodes.OK).send({message : "Resource deleted"});
+			res.status(StatusCodes.OK).send({ message: "Resource deleted" });
 		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad request."});
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
 		}
 	} catch (e) {
 		console.log(`Error in remove`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -108,85 +108,155 @@ exports.search = async (req, res, next) => {
 			};
 			res.status(StatusCodes.OK).send(result);
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
 		}
 	} catch (e) {
 		console.log(`Error in search`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
 exports.getUserAppointments = async (req, res, next) => {
-    try {
-        const userId = req.params.user_id;  // Extract user_id from the route parameter
-        const offset = 0; // Set your offset for pagination
-        const pageSize = 50; // Set your page size for pagination
+	try {
+		const userId = req.params.user_id;  // Extract user_id from the route parameter
+		const offset = 0; // Set your offset for pagination
+		const pageSize = 50; // Set your page size for pagination
 
-        const data = await model.find(userId, offset, pageSize);  // Pass userId to the find function
+		const data = await model.find(userId, offset, pageSize);  // Pass userId to the find function
 
-        if (!_.isEmpty(data)) {
-            res.status(StatusCodes.OK).send(data);
-        } else {
-            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for this user." });
-        }
-    } catch (e) {
-        console.log(`Error in getUserAppointments`, e);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-    }
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send(data);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for this user." });
+		}
+	} catch (e) {
+		console.log(`Error in getUserAppointments`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
 };
 
 exports.getLastSecretary = async (req, res, next) => {
-    try {
-        const { user_id, for_ap } = req.body; // Extract only user_id and for_ap from the request body
+	try {
+		const { user_id, for_ap } = req.body; // Extract only user_id and for_ap from the request body
 
-        const data = await model.getLastSecretary(user_id, for_ap); // Call the model method
-        if (data) {
-            res.status(StatusCodes.OK).send({ assign_to_fill: data.assign_to_fill });
-        } else {
-            res.status(StatusCodes.NOT_FOUND).send({ assign_to_fill: "None" });
-        }
-    } catch (e) {
-        console.log(`Error in getLastSecretary`, e);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-    }
+		const data = await model.getLastSecretary(user_id, for_ap); // Call the model method
+		if (data) {
+			res.status(StatusCodes.OK).send({ assign_to_fill: data.assign_to_fill });
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ assign_to_fill: "None" });
+		}
+	} catch (e) {
+		console.log(`Error in getLastSecretary`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
 };
 
 exports.submitSelfAppointment = async (req, res, next) => {
-    try {
-        const userId = req.params.user_id; // Extract user_id from the route parameter
-        const appointmentData = {
-            user_id: userId,
-            full_name: req.body.user_full_name,
-            email_id: req.body.user_email,
-            mobile_no: req.body.user_phone,
-            ap_location: req.body.ap_location,
-            designation: req.body.designation,
-            meet_subject: req.body.meet_subject || '', // Pass blank value if not provided
-            meet_purpose: req.body.meet_purpose,
-            no_people: req.body.no_people,
-            from_date: req.body.from_date,
-            to_date: req.body.to_date,
-            attachment: req.body.attachment,
-            currently_doing: req.body.currently_doing,
-            dop: req.body.dop,
-            toa: req.body.toa || 'offline', // Default to 'offline' if not provided
-            curr_loc: req.body.curr_loc || '', // Pass blank value if not provided
-            selCountry: req.body.selCountry || '', // Pass blank value if not provided
-            selState: req.body.selState || '', // Pass blank value if not provided
-            selCity: req.body.selCity || '', // Pass blank value if not provided
-            // Add any other fields as necessary
-        };
+	try {
+		const userId = req.params.user_id; // Extract user_id from the route parameter
+		const appointmentData = {
+			user_id: userId,
+			full_name: req.body.user_full_name,
+			email_id: req.body.user_email,
+			mobile_no: req.body.user_phone,
+			ap_location: req.body.ap_location,
+			designation: req.body.designation,
+			meet_subject: req.body.meet_subject || '', // Pass blank value if not provided
+			meet_purpose: req.body.meet_purpose,
+			no_people: req.body.no_people,
+			from_date: req.body.from_date,
+			to_date: req.body.to_date,
+			attachment: req.body.attachment,
+			currently_doing: req.body.currently_doing,
+			dop: req.body.dop,
+			toa: req.body.toa || 'offline', // Default to 'offline' if not provided
+			curr_loc: req.body.curr_loc || '', // Pass blank value if not provided
+			selCountry: req.body.selCountry || '', // Pass blank value if not provided
+			selState: req.body.selState || '', // Pass blank value if not provided
+			selCity: req.body.selCity || '', // Pass blank value if not provided
+			// Add any other fields as necessary
+		};
 
-        const data = await model.insert(appointmentData); // Call the model's insert method
-        if (data) {
-            res.status(StatusCodes.CREATED).send({ message: 'Appointment created', data: data });
-        } else {
-            res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
-        }
-    } catch (e) {
-        console.log(`Error in submitSelfAppointment`, e);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-    }
+		const data = await model.insert(appointmentData); // Call the model's insert method
+		if (data) {
+			res.status(StatusCodes.CREATED).send({ message: 'Appointment created', data: data });
+		} else {
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+		}
+	} catch (e) {
+		console.log(`Error in submitSelfAppointment`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.submitGuestAppointment = async (req, res, next) => {
+	try {
+		const userId = req.params.user_id; // Extract user_id from the route parameter
+		const appointmentData = {
+			user_id: userId,
+			ap_location: req.body.ap_location,
+			full_name: req.body.full_name,
+			email_id: req.body.email_id,
+			country_code: req.body.country_code,
+			mobile_no: req.body.mobile_no,
+			designation: req.body.designation,
+			// company: req.body.company,
+			country: req.body.country,
+			state: req.body.state,
+			city: req.body.city,
+			meet_purpose: req.body.meet_purpose,
+			no_people: req.body.no_people,
+			from_date: req.body.from_other_date,
+			to_date: req.body.to_other_date,
+			picture: req.body.picture,
+			attachment: req.body.attachment,
+			toa: req.body.toa || 'offline', // Default to 'offline' if not provided
+			curr_loc: req.body.curr_loc || '', // Pass blank value if not provided
+			currently_doing: req.body.currently_doing,
+			dop: req.body.dop,
+			selCountry: req.body.selCountry || '', // Pass blank value if not provided
+			selState: req.body.selState || '', // Pass blank value if not provided
+			selCity: req.body.selCity || '', // Pass blank value if not provided
+			no_people_names: req.body.no_people_name,
+			no_people_numbers: req.body.no_people_number,
+			no_people_eleven_details: req.body.no_people_eleven_details,
+			ref_email_id: req.body.ref_email_id_other,
+			ref_country_code: req.body.ref_ccode_other,
+			ref_mobile_no: req.body.ref_mobile_no_other,
+		};
+
+		const data = await model.insert(appointmentData); // Call the model's insert method
+		if (data) {
+			res.status(StatusCodes.CREATED).send({ message: 'Guest appointment created', data: data });
+		} else {
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+		}
+	} catch (e) {
+		console.log(`Error in submitGuestAppointment`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.getUserHistory = async (req, res, next) => {
+	try {
+		const userId = req.params.user_id;
+		const emailId = req.params.email_id;
+
+		const data = await model.getUserHistory(userId, emailId); // Call the model method
+		const totalCount = data.length;
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send({
+				message: "User history retrieved successfully", // Success message
+				totalCount, // Include total count in the response
+				data
+			});
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment history found for this user." });
+		}
+	} catch (e) {
+		console.log(`Error in getUserHistory`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
 };
 
 

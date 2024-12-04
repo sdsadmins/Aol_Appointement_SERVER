@@ -17,6 +17,7 @@ router.post('/change_password/:user_id', checkAuth, controller.changePassword);
 router.post('/register', controller.register);
 router.post('/login', controller.login);
 router.post('/updatePasswordByEmail', controller.updatePasswordByEmail);
+router.get('/usersData/:user_id', checkAuth, controller.getUserData);
 
 
 module.exports = router;

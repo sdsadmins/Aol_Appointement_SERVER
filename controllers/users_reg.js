@@ -1,124 +1,124 @@
 require('dotenv').config();
 const _ = require('lodash');
-const {StatusCodes} = require('http-status-codes');
+const { StatusCodes } = require('http-status-codes');
 const model = require("../models/users_reg");
-const {getPageNo, getPageSize} = require('../utils/helper');
+const { getPageNo, getPageSize } = require('../utils/helper');
 const bcrypt = require('bcrypt');
 const validationDto = require('../dto/users_reg.dto');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET_KEY = process.env.JWT_SECRET;
 
 exports.getAll = async (req, res, next) => {
-	try {
-		const pageNo = await getPageNo(req);
-		const pageSize = await getPageSize(req);
-		const offset = (pageNo - 1) * pageSize;
-		const totalCount = await model.count();
-		const data = await model.find(offset, pageSize);
-		if (!_.isEmpty(data)) {
-			const result = {
-				pageNo: pageNo,
-				pageSize: pageSize,
-				totalCount: totalCount,
-				data: data,
-			};
-			res.status(StatusCodes.OK).send(result);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
-		}
-	} catch (e) {
-		console.log(`Error in getAll`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+    try {
+        const pageNo = await getPageNo(req);
+        const pageSize = await getPageSize(req);
+        const offset = (pageNo - 1) * pageSize;
+        const totalCount = await model.count();
+        const data = await model.find(offset, pageSize);
+        if (!_.isEmpty(data)) {
+            const result = {
+                pageNo: pageNo,
+                pageSize: pageSize,
+                totalCount: totalCount,
+                data: data,
+            };
+            res.status(StatusCodes.OK).send(result);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
+        }
+    } catch (e) {
+        console.log(`Error in getAll`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.getOne = async (req, res, next) => {
-	try {
-		const id = req.params.id;
+    try {
+        const id = req.params.id;
 
-		const data = await model.findOne(id);
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data[0]);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
-		}
-	} catch (e) {
-		console.log(`Error in getById`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+        const data = await model.findOne(id);
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send(data[0]);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
+        }
+    } catch (e) {
+        console.log(`Error in getById`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.create = async (req, res, next) => {
-	try {
-		const data = await model.insert(req.body);
-		if (data) {
-			res.status(StatusCodes.CREATED).send({message:'Record created', data:data});
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad Request!"});
-		}
-	} catch (e) {
-		console.log(`Error in create`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+    try {
+        const data = await model.insert(req.body);
+        if (data) {
+            res.status(StatusCodes.CREATED).send({ message: 'Record created', data: data });
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+        }
+    } catch (e) {
+        console.log(`Error in create`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.update = async (req, res, next) => {
-	try {
-		const id = req.params.id;
+    try {
+        const id = req.params.id;
 
-		//const id = req.params.id;
-		const data = await model.update(id, req.body);
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data[0]);
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad request."});
-		}
-	} catch (e) {
-		console.log(`Error in update`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+        //const id = req.params.id;
+        const data = await model.update(id, req.body);
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send(data[0]);
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
+        }
+    } catch (e) {
+        console.log(`Error in update`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.remove = async (req, res, next) => {
-	try {
-		const id = req.params.id;
+    try {
+        const id = req.params.id;
 
-		//const id = req.params.id;
-		const data = await model.remove(id);
-		if (data) {
-			res.status(StatusCodes.OK).send({message : "Resource deleted"});
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad request."});
-		}
-	} catch (e) {
-		console.log(`Error in remove`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+        //const id = req.params.id;
+        const data = await model.remove(id);
+        if (data) {
+            res.status(StatusCodes.OK).send({ message: "Resource deleted" });
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
+        }
+    } catch (e) {
+        console.log(`Error in remove`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.search = async (req, res, next) => {
-	try {
-		const pageNo = await getPageNo(req);
-		const pageSize = await getPageSize(req);
-		const offset = (pageNo - 1) * pageSize;
-		const searchKey = req.params.searchKey;
-		const totalCount = await model.searchCount(searchKey.toLowerCase());
-		const data = await model.search(offset, pageSize, searchKey.toLowerCase());
-		if (!_.isEmpty(data)) {
-			const result = {
-				pageNo: pageNo,
-				pageSize: pageSize,
-				totalCount: totalCount,
-				records: data,
-			};
-			res.status(StatusCodes.OK).send(result);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
-		}
-	} catch (e) {
-		console.log(`Error in search`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+    try {
+        const pageNo = await getPageNo(req);
+        const pageSize = await getPageSize(req);
+        const offset = (pageNo - 1) * pageSize;
+        const searchKey = req.params.searchKey;
+        const totalCount = await model.searchCount(searchKey.toLowerCase());
+        const data = await model.search(offset, pageSize, searchKey.toLowerCase());
+        if (!_.isEmpty(data)) {
+            const result = {
+                pageNo: pageNo,
+                pageSize: pageSize,
+                totalCount: totalCount,
+                records: data,
+            };
+            res.status(StatusCodes.OK).send(result);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
+        }
+    } catch (e) {
+        console.log(`Error in search`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.register = async (req, res, next) => {
@@ -134,7 +134,7 @@ exports.register = async (req, res, next) => {
         //         console.log(`${key} is required`);  // Log which key is missing
         //         return res.status(400).send({ message: `${key} is required` });  // 400 Bad Request
         //     }
-            
+
         //     // Check type of each field in userData
         //     if (typeof userData[key] !== validationDto[key].type) {
         //         console.log(`${key} must be of type ${validationDto[key].type}, received: ${typeof userData[key]}`);
@@ -157,8 +157,8 @@ exports.register = async (req, res, next) => {
 
         // Log the hashed password for debugging
         console.log("Hashed password:", hashedPassword);
-		const sd = { ...userData, password: hashedPassword };
-		console.log("Data saved:", sd); 
+        const sd = { ...userData, password: hashedPassword };
+        console.log("Data saved:", sd);
 
         // Insert the user data with the hashed password
         const data = await model.insert(sd);
@@ -203,18 +203,18 @@ exports.login = async (req, res, next) => {
         // Generate JWT token
         const payload = {
             userId: user[0].id,
-            email: user[0].email_id 
+            email: user[0].email_id
         };
 
         // const token = jwt.sign(payload, process.env.SECRET_KEY, { expiresIn: '1h' });  // Set expiration time as needed (e.g., 1 hour)
         const token = jwt.sign(payload, process.env.TOKEN_SECRET, {
             algorithm: 'HS256',
             expiresIn: '1h'
-          })
+        })
         // Send the response with the JWT
-        res.status(200).send({ 
-            message: 'Login successful', 
-            user: user[0], 
+        res.status(200).send({
+            message: 'Login successful',
+            user: user[0],
             token: token  // Include the token in the response
         });
     } catch (e) {
@@ -297,7 +297,7 @@ exports.updatePasswordByEmail = async (req, res) => {
 
         // Prepare the SQL query
         const query = `UPDATE users_reg SET password = ? WHERE email_id = ?`;
-        
+
         // Execute the query
         const result = await updateRow(query, [hashedPassword, email]);
 
@@ -347,5 +347,21 @@ exports.changePassword = async (req, res, next) => {
     } catch (error) {
         console.error('Error in changePassword:', error);
         return res.status(500).send({ message: 'Internal server error' });
+    }
+};
+
+exports.getUserData = async (req, res, next) => {
+    try {
+        const userId = req.params.user_id; // Get user_id from request parameters
+        const data = await model.findOne(userId); // Fetch user data using the model
+
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send(data[0]); // Send the user data
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "User not found" });
+        }
+    } catch (e) {
+        console.log(`Error in getUserData`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
