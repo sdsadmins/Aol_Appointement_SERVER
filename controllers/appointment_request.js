@@ -116,4 +116,40 @@ exports.search = async (req, res, next) => {
 	}
 };
 
+exports.getUserAppointments = async (req, res, next) => {
+    try {
+        const userId = req.params.user_id;  // Extract user_id from the route parameter
+        const offset = 0; // Set your offset for pagination
+        const pageSize = 50; // Set your page size for pagination
+
+        const data = await model.find(userId, offset, pageSize);  // Pass userId to the find function
+
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send(data);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for this user." });
+        }
+    } catch (e) {
+        console.log(`Error in getUserAppointments`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
+
+exports.getLastSecretary = async (req, res, next) => {
+    try {
+        const userId = req.body.user_id; // Extract user_id from the request body
+        const forAp = req.body.for_ap; // Extract for_ap from the request body
+
+        const data = await model.getLastSecretary(userId, forAp); // Call the model method
+        if (data) {
+            res.status(StatusCodes.OK).send(data);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No secretary found." });
+        }
+    } catch (e) {
+        console.log(`Error in getLastSecretary`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
+
 

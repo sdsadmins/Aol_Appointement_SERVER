@@ -1,7 +1,11 @@
 module.exports = {
     "ap_id" : { required: true, type: "string"},
 "user_id" : { required: true, type: "number"},
-"for_ap" : { required: true, type: "string"},
+"for_ap" : { 
+  required: true, 
+  type: "string", 
+  enum: ["me", "other"]
+},
 "full_name" : { required: true, type: "string"},
 "email_id" : { required: true, type: "string"},
 "country_code" : { required: false, type: "number"},

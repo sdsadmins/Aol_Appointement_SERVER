@@ -75,4 +75,15 @@ exports.searchCount = async (key) => {
     }
 }
 
+exports.updatePasswordByEmail = async (email, hashedPassword) => {
+    const query = `UPDATE users_reg SET password = ? WHERE email_id = ?`;
+    const result = await updateRow(query, [hashedPassword, email]);
+    return result ? true : false;
+}
+
+exports.findOneByEmail = async (email) => {
+    const query = `SELECT * FROM users_reg WHERE email_id = ?`;
+    return getRows(query, [email]);
+}
+
 

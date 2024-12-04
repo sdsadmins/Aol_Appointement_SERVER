@@ -6,7 +6,7 @@ const updateValidator = require("../middleware/updateValidator");
 const createDto = require('../dto/cities.dto');
 const router = express.Router();
 
-router.get('/', checkAuth, controller.getAll);
+router.get('/',  controller.getAll);
 router.post('/', checkAuth, bodyValidator(createDto), controller.create);
 router.get('/:prid', checkAuth, controller.getOne);
 router.put('/:prid', checkAuth, updateValidator(createDto), controller.update);

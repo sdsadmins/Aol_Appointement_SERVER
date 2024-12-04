@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const checkAuth = require('../middleware/jwtVerify');
+const checkAuth = require('../middleware/jwtVerify.js');
 const tokenController = require('../controllers/token');
 const uploadController = require('../controllers/upload');
 
@@ -30,6 +30,7 @@ const user_tagsRouter = require('./user_tags');
 const email_footerRouter = require('./email_footer');
 const citiesRouter = require('./cities');
 const apex_loginRouter = require('./apex_login');
+const loginRouter = require('../routes/auth/login.js');
 
 
 router.post('/token', tokenController.authLogin);
@@ -60,6 +61,6 @@ router.use('/sms_template', sms_templateRouter);
 router.use('/user_tags', user_tagsRouter);
 router.use('/email_footer', email_footerRouter);
 router.use('/cities', citiesRouter);
-router.use('/apex_login', apex_loginRouter);
+router.use('/auth', loginRouter);
 
 module.exports = router;

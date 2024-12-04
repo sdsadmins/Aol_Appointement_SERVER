@@ -13,5 +13,10 @@ router.put('/:id', checkAuth, updateValidator(createDto), controller.update);
 router.patch('/:id', checkAuth, controller.update);
 router.delete('/:id', checkAuth, controller.remove);
 router.get('/search/:searchKey', checkAuth, controller.search);
+router.post('/change_password/:user_id', checkAuth, controller.changePassword);
+router.post('/register', controller.register);
+router.post('/login', controller.login);
+router.post('/updatePasswordByEmail', controller.updatePasswordByEmail);
+
 
 module.exports = router;
