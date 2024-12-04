@@ -137,17 +137,54 @@ exports.getUserAppointments = async (req, res, next) => {
 
 exports.getLastSecretary = async (req, res, next) => {
     try {
-        const userId = req.body.user_id; // Extract user_id from the request body
-        const forAp = req.body.for_ap; // Extract for_ap from the request body
+        const { user_id, for_ap } = req.body; // Extract only user_id and for_ap from the request body
 
-        const data = await model.getLastSecretary(userId, forAp); // Call the model method
+        const data = await model.getLastSecretary(user_id, for_ap); // Call the model method
         if (data) {
-            res.status(StatusCodes.OK).send(data);
+            res.status(StatusCodes.OK).send({ assign_to_fill: data.assign_to_fill });
         } else {
-            res.status(StatusCodes.NOT_FOUND).send({ message: "No secretary found." });
+            res.status(StatusCodes.NOT_FOUND).send({ assign_to_fill: "None" });
         }
     } catch (e) {
         console.log(`Error in getLastSecretary`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
+
+exports.submitSelfAppointment = async (req, res, next) => {
+    try {
+        const userId = req.params.user_id; // Extract user_id from the route parameter
+        const appointmentData = {
+            user_id: userId,
+            full_name: req.body.user_full_name,
+            email_id: req.body.user_email,
+            mobile_no: req.body.user_phone,
+            ap_location: req.body.ap_location,
+            designation: req.body.designation,
+            meet_subject: req.body.meet_subject || '', // Pass blank value if not provided
+            meet_purpose: req.body.meet_purpose,
+            no_people: req.body.no_people,
+            from_date: req.body.from_date,
+            to_date: req.body.to_date,
+            attachment: req.body.attachment,
+            currently_doing: req.body.currently_doing,
+            dop: req.body.dop,
+            toa: req.body.toa || 'offline', // Default to 'offline' if not provided
+            curr_loc: req.body.curr_loc || '', // Pass blank value if not provided
+            selCountry: req.body.selCountry || '', // Pass blank value if not provided
+            selState: req.body.selState || '', // Pass blank value if not provided
+            selCity: req.body.selCity || '', // Pass blank value if not provided
+            // Add any other fields as necessary
+        };
+
+        const data = await model.insert(appointmentData); // Call the model's insert method
+        if (data) {
+            res.status(StatusCodes.CREATED).send({ message: 'Appointment created', data: data });
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+        }
+    } catch (e) {
+        console.log(`Error in submitSelfAppointment`, e);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };

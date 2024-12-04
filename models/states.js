@@ -75,4 +75,9 @@ exports.searchCount = async (key) => {
     }
 }
 
+exports.findByCountryId = async (countryId) => {
+    const query = `SELECT t.id, t.name, t.sort_name FROM states as t WHERE t.country_id = ?`;
+    return getRows(query, [countryId]);
+}
+
 

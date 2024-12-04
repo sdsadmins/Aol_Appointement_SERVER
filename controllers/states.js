@@ -116,4 +116,26 @@ exports.search = async (req, res, next) => {
 	}
 };
 
+exports.getStateByCountryId = async (req, res, next) => {
+	try {
+		const countryId = req.params.country_id;
+		const data = await model.findByCountryId(countryId);
+		const count = data.length; // Get the count of records
+
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send({
+				message: "Data retrieved successfully",
+				totalCount: count,
+				data,
+			});
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({message: "No record found"});
+		}
+	} catch (e) {
+		console.log(`Error in getByCountryId`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message: e.message});
+	}
+};
+
+
 
