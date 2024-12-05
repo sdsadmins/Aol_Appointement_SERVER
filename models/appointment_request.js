@@ -96,4 +96,9 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId]);
 };
 
+exports.getAppointmentsByDate = async (userId, dateString) => {
+    const query = `SELECT * FROM appointment_request WHERE user_id = ? AND DATE(from_date) = ?`;
+    return getRows(query, [userId, dateString]);
+};
+
 

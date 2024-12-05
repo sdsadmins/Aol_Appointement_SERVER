@@ -259,4 +259,23 @@ exports.getUserHistory = async (req, res, next) => {
 	}
 };
 
+exports.getAppointmentsByDate = async (req, res, next) => {
+	try {
+		const userId = req.params.user_id;
+		const dateString = req.params.datestring;
+
+		// Assuming you have a method in your model to get appointments by date
+		const data = await model.getAppointmentsByDate(userId, dateString);
+
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send(data);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for this date." });
+		}
+	} catch (e) {
+		console.log(`Error in getAppointmentsByDate`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 

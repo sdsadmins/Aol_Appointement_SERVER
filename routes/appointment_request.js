@@ -18,5 +18,6 @@ router.get('/usersData/:user_id', checkAuth, controller.getUserAppointments);
 router.post('/getLastSecretary', checkAuth, controller.getLastSecretary);
 router.post('/appointmentforOther/:user_id', checkAuth, controller.submitGuestAppointment);
 router.get('/usersHistory/:user_id/:email_id', checkAuth, controller.getUserHistory);
+router.get('/get_ndate_record/:user_id/:datestring', checkAuth, controller.getAppointmentsByDate);
 
 module.exports = router;
