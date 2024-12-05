@@ -316,4 +316,30 @@ exports.changeCheckInStatus = async (req, res, next) => {
 	}
 };
 
+exports.updateAppointment = async (req, res, next) => {
+	try {
+		const { appid, secretary_note, gurudev_remark, app_frm } = req.body; // Extract parameters from the request body
+
+		// Ensure appid is provided
+		if (!appid) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
+		}
+
+		// Ensure app_frm is provided
+		if (!app_frm) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "Form identifier is required" });
+		}
+
+		const data = await model.updateCheckInStatus(appid, { secretary_note, gurudev_remark }); // Call the model method
+		if (data) {
+			res.status(StatusCodes.OK).send({ message: "Appointment updated successfully" });
+		} else {
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to update appointment" });
+		}
+	} catch (e) {
+		console.log(`Error in updateAppointment`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 

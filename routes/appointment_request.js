@@ -20,5 +20,6 @@ router.post('/appointmentforOther/:user_id', checkAuth, controller.submitGuestAp
 router.get('/usersHistory/:user_id/:email_id', checkAuth, controller.getUserHistory);
 router.get('/get_appointment_details/:ap_id', checkAuth, controller.getAppointmentDetails);
 router.post('/change_check_in_status', checkAuth, controller.changeCheckInStatus);
+router.post('/update_appointment/:user_id', checkAuth, controller.updateAppointment);
 
 module.exports = router;
