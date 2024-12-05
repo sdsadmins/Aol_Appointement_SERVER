@@ -342,4 +342,40 @@ exports.updateAppointment = async (req, res, next) => {
 	}
 };
 
+exports.moreInfoAppointment = async (req, res, next) => {
+	try {
+		const { appid, radioreason } = req.body;
+		const userId = req.params.user_id;
+
+		if (!appid) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "Please pass a valid appointment ID!" });
+		}
+
+		// First, get the appointment record to get its ID
+		const appointment = await model.findOneByApId(appid);
+		
+		if (!appointment || appointment.length === 0) {
+			return res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found!" });
+		}
+
+		const data = {
+			more_info: '1',
+			ap_status: 'more info',
+			radioreason: radioreason
+		};
+
+		// Use the actual ID from the found appointment for the update
+		const result = await model.update(appointment[0].id, data);
+		
+		if (result && !_.isEmpty(result)) {
+			res.status(StatusCodes.OK).send({ message: 'Request for more info has been made successfully!' });
+		} else {
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Failed to update appointment status!' });
+		}
+	} catch (e) {
+		console.log(`Error in moreInfoAppointment`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 
