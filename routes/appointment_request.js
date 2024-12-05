@@ -18,6 +18,7 @@ router.get('/usersData/:user_id', checkAuth, controller.getUserAppointments);
 router.post('/getLastSecretary', checkAuth, controller.getLastSecretary);
 router.post('/appointmentforOther/:user_id', checkAuth, controller.submitGuestAppointment);
 router.get('/usersHistory/:user_id/:email_id', checkAuth, controller.getUserHistory);
-router.post('/change_check_in_status/:appid/:status', checkAuth, controller.changeCheckInStatus);
+router.get('/get_appointment_details/:ap_id', checkAuth, controller.getAppointmentDetails);
+router.post('/change_check_in_status', checkAuth, controller.changeCheckInStatus);
 
 module.exports = router;

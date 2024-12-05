@@ -101,8 +101,13 @@ exports.getAppointmentsByDate = async (userId, dateString) => {
     return getRows(query, [userId, dateString]);
 };
 
+exports.findOneByApId = async (apId) => {
+    const query = `SELECT * FROM appointment_request WHERE ap_id = ?`; // Query to find by ap_id
+    return getRows(query, [apId]);
+};
+
 exports.updateCheckInStatus = async (appid, status) => {
-    const query = `UPDATE appointment_request SET check_in_status = ? WHERE id = ?`;
+    const query = `UPDATE appointment_request SET check_in_status = ? WHERE ap_id = ?`;
     const result = await updateRow(query, [status, appid]);
     return result;
 };
