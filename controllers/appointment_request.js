@@ -278,4 +278,25 @@ exports.getAppointmentsByDate = async (req, res, next) => {
 	}
 };
 
+exports.changeCheckInStatus = async (req, res, next) => {
+	try {
+		const { appid, status } = req.params; // Extract appid and status from the URL parameters
+
+		// Ensure appid and status are provided
+		if (!appid || !status) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID and status are required" });
+		}
+
+		const data = await model.updateCheckInStatus(appid, status); // Call the model method
+		if (data) {
+			res.status(StatusCodes.OK).send({ message: "Check-in status updated successfully" });
+		} else {
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to update check-in status" });
+		}
+	} catch (e) {
+		console.log(`Error in changeCheckInStatus`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 
