@@ -101,4 +101,9 @@ exports.getAppointmentsByDate = async (userId, dateString) => {
     return getRows(query, [userId, dateString]);
 };
 
+exports.findOneByApId = async (apId) => {
+    const query = `SELECT * FROM appointment_request WHERE ap_id = ?`; // Query to find by ap_id
+    return getRows(query, [apId]);
+};
+
 

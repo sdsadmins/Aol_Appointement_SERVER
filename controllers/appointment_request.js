@@ -278,4 +278,20 @@ exports.getAppointmentsByDate = async (req, res, next) => {
 	}
 };
 
+exports.getAppointmentDetails = async (req, res, next) => {
+	try {
+		const apId = req.params.ap_id; // Extract ap_id from the route parameter
+
+		// Update the query to search by ap_id instead of id
+		const data = await model.findOneByApId(apId); // Call the model method to get appointment details by ap_id
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send({ message: "Appointment details retrieved successfully", data: data[0] }); // Send the appointment details with a success message
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ap_id." });
+		}
+	} catch (e) {
+		console.log(`Error in getAppointmentDetails`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
 
