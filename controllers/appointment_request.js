@@ -342,4 +342,50 @@ exports.updateAppointment = async (req, res, next) => {
 	}
 };
 
+exports.makeAppointmentDone = async (req, res, next) => {
+	try {
+		const { appid } = req.body; // Extract appid from the request body
+
+		// Ensure appid is provided
+		if (!appid) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
+		}
+
+		// Assuming you have a method in your model to update the appointment status
+		const data = await model.updateAppointmentStatus(appid, 'done'); // Update the status to 'done'
+		
+		if (data) {
+			res.status(StatusCodes.OK).send({ message: "Appointment marked as done successfully" });
+		} else {
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to mark appointment as done" });
+		}
+	} catch (e) {
+		console.log(`Error in makeAppointmentDone`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.makeAppointmentUndone = async (req, res, next) => {
+	try {
+		const { appid, last_status } = req.body; // Extract appid and last_status from the request body
+
+		// Ensure appid and last_status are provided
+		if (!appid || !last_status) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID and last status are required" });
+		}
+
+		// Assuming you have a method in your model to update the appointment status
+		const data = await model.updateAppointmentStatus(appid, last_status); // Revert the status to last_status
+		
+		if (data) {
+			res.status(StatusCodes.OK).send({ message: "Appointment status reverted successfully" });
+		} else {
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to revert appointment status" });
+		}
+	} catch (e) {
+		console.log(`Error in makeAppointmentUndone`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 
