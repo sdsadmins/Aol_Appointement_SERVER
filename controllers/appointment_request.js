@@ -424,4 +424,47 @@ exports.makeAppointmentUndone = async (req, res, next) => {
 	}
 };
 
+exports.restoreAppointment = async (req, res, next) => {
+	try {
+		const appid = req.params.ap_id; // Extract appid from the route parameter
+
+		const data = await model.restore(appid); // Call the model method to restore the appointment
+		if (data) {
+			res.status(StatusCodes.OK).send({ message: "Appointment restored successfully", data: data });
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found or already restored." });
+		}
+	} catch (e) {
+		console.log(`Error in restoreAppointment`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.deleteAppointment = async (req, res, next) => {
+	try {
+		const { appid } = req.body; // Extract appid from the request body
+		const { sendEmail, radioreason, page } = req.body; // Extract additional parameters from the request body
+
+		// Ensure appid is provided
+		if (!appid) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
+		}
+
+		// Change the status to 1 instead of deleting the appointment
+		const data = await model.updateAppointmentStatus(appid, '1'); // Update status to 1
+		const updateDeletedApp = await model.updateDeletedApp(appid, '1'); // Set deleted_app to '1'
+		// Ensure the update was successful
+		if (updateDeletedApp) {
+			res.status(StatusCodes.OK).send({ message: "Appointment status updated to 1 successfully", sendEmail, radioreason, page }); // Include additional parameters in the response
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+		}
+	} catch (e) {
+		console.log(`Error in deleteAppointment`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+
+
 

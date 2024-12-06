@@ -7,6 +7,32 @@ const bcrypt = require('bcrypt');
 const validationDto = require('../dto/users_reg.dto');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET_KEY = process.env.JWT_SECRET;
+const uuid = require('uuid');
+const path = require('path');
+const multer = require('multer');
+const crypto = require('crypto');
+
+// Set up storage for multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, './uploads'); // Specify the upload directory
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname); // Use timestamp for unique filename
+    }
+});
+
+// Initialize multer for image file types
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'), false);
+        }
+    }
+});
 
 exports.getAll = async (req, res, next) => {
     try {
@@ -121,49 +147,85 @@ exports.search = async (req, res, next) => {
     }
 };
 
+// exports.register = async (req, res) => {
+//     return new Promise((resolve, reject) => {
+//         upload(req, res, async (err) => {
+//             if (err instanceof multer.MulterError) {
+//                 return res.status(400).send({ message: 'File upload error: ' + err.message });
+//             } else if (err) {
+//                 return res.status(400).send({ message: err.message });
+//             }
+
+//             try {
+//                 if (!req.file) {
+//                     return res.status(400).send({ message: 'Photo is required' });
+//                 }
+
+//                 const userData = req.body;
+//                 const saltRounds = 10;
+//                 const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+
+//                 const userDataToSave = {
+//                     ...userData,
+//                     password: hashedPassword,
+//                     photo: req.file.filename
+//                 };
+
+//                 const data = await model.insert(userDataToSave);
+                
+//                 if (data) {
+//                     res.status(201).send({
+//                         message: 'User registered successfully',
+//                         data: data
+//                     });
+//                 } else {
+//                     res.status(400).send({ message: "Registration failed" });
+//                 }
+//             } catch (error) {
+//                 console.error('Error in register:', error);
+//                 res.status(500).send({ message: error.message });
+//             }
+//         });
+//     });
+// };
+
+
+
+// New login function added
 exports.register = async (req, res, next) => {
     console.log('Register function triggered');  // Check if the function is triggered
     console.log('Request body:', req.body);  // Log the incoming request body for debugging
-
     try {
         const userData = req.body;
-
         // Validate user data against the DTO
         // for (const key in validationDto) {
         //     if (validationDto[key].required && !userData[key]) {
         //         console.log(`${key} is required`);  // Log which key is missing
         //         return res.status(400).send({ message: `${key} is required` });  // 400 Bad Request
         //     }
-
         //     // Check type of each field in userData
         //     if (typeof userData[key] !== validationDto[key].type) {
         //         console.log(`${key} must be of type ${validationDto[key].type}, received: ${typeof userData[key]}`);
         //         return res.status(400).send({ message: `${key} must be of type ${validationDto[key].type}` });
         //     }
         // }
-
         // Check if 'company' field exists and is a string, if required
         // if (userData.company && typeof userData.company !== 'string') {
         //     console.log(`company must be of type string, received: ${typeof userData.company}`);
         //     return res.status(400).send({ message: 'company must be of type string' });
         // }
-
         // Log the incoming password to check if it's being received correctly
         console.log("Password received:", userData.password);
-
         // Hash the password
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
-
         // Log the hashed password for debugging
         console.log("Hashed password:", hashedPassword);
         const sd = { ...userData, password: hashedPassword };
         console.log("Data saved:", sd);
-
         // Insert the user data with the hashed password
         const data = await model.insert(sd);
         console.log("Data saved:", data);  // Log the data returned by insert
-
         if (data) {
             res.status(201).send({ message: 'User registered successfully', data: data });
         } else {
@@ -175,7 +237,6 @@ exports.register = async (req, res, next) => {
     }
 };
 
-// New login function added
 exports.login = async (req, res, next) => {
     console.log('Login function triggered');
     console.log('Request body:', req.body);  // Log the incoming request body for debugging
@@ -222,67 +283,6 @@ exports.login = async (req, res, next) => {
         res.status(500).send({ message: e.message });  // 500 Internal Server Error
     }
 };
-
-// exports.updatePassword = async (req, res, next) => {
-//     try {
-//         const { email, password } = req.body;
-
-//         // Hash the new password
-//         const saltRounds = 10;
-//         const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-//         // Update the user's password in the database
-//         const data = await model.updatePasswordByEmail(email, hashedPassword);
-//         if (data) {
-//             res.status(StatusCodes.OK).send({ message: 'Password updated successfully' });
-//         } else {
-//             res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
-//         }
-//     } catch (e) {
-//         console.log(`Error in updatePassword`, e);
-//         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-//     }
-// };
-
-
-
-
-// exports.updatePassword = async (req, res) => {
-//     try {
-//         const { email, password } = req.body;
-
-//         // Validate the request
-//         if (!email || !password) {
-//             return res.status(400).send({ message: 'Email and password are required' });
-//         }
-
-//         // Log the incoming request data for debugging
-//         console.log('Request body:', req.body);
-
-//         // Check if the user exists in the database
-//         const user = await model.findOneByEmail(email); // Replace with your actual query method
-//         if (!user) {
-//             return res.status(404).send({ message: 'User not found' });
-//         }
-
-//         // Hash the new password
-//         const saltRounds = 10;
-//         const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-//         // Update the user's password in the database
-//         const result = await model.updatePasswordByEmail(email, hashedPassword); // Replace with your actual update method
-//         if (result) {
-//             return res.status(200).send({ message: 'Password updated successfully' });
-//         } else {
-//             return res.status(500).send({ message: 'Failed to update password' });
-//         }
-//     } catch (e) {
-//         console.error('Error in updatePassword:', e);
-//         return res.status(500).send({ message: 'Internal server error' });
-//     }
-// };
-
-
 
 exports.updatePasswordByEmail = async (req, res) => {
     const { email, password } = req.body;  // Get email and password from the request body
@@ -365,3 +365,52 @@ exports.getUserData = async (req, res, next) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
+
+exports.decryptAndUpdateSingleUser = async (req, res) => {
+    try {
+        const email = req.body.email;
+        const originalPassword = req.body.password;
+        
+        // Find the user by email
+        const user = await model.findOneByEmail(email);
+        
+        if (!user || !user[0]) {
+            return res.status(404).send({
+                message: "User not found"
+            });
+        }
+
+        try {
+            // Hash the original password for updating
+            const hashedPassword = await bcrypt.hash(originalPassword, 10);
+            
+            // Update the user's password
+            const result = await model.updatePasswordByEmail(email, hashedPassword);
+            
+            if (result) {
+                res.status(200).send({
+                    message: "Password updated successfully",
+                    email: email
+                });
+            } else {
+                res.status(400).send({
+                    message: "Failed to update password"
+                });
+            }
+        } catch (error) {
+            console.error('Error processing user:', error);
+            res.status(500).send({
+                message: 'Error processing password',
+                error: error.message
+            });
+        }
+    } catch (error) {
+        console.error('Error in decryptAndUpdateSingleUser:', error);
+        res.status(500).send({
+            message: 'An error occurred',
+            error: error.message
+        });
+    }
+}
+
+// exports.decryptAndUpdateSingleUser = decryptAndUpdateSingleUser;

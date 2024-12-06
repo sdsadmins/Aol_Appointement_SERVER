@@ -86,4 +86,9 @@ exports.findOneByEmail = async (email) => {
     return getRows(query, [email]);
 }
 
+exports.findAll = async () => {
+    const query = `SELECT id, password FROM users_reg`;
+    return getRows(query);
+}
+
 

@@ -3,7 +3,8 @@ const { StatusCodes } = require('http-status-codes');
 const model = require("../models/token");
 const jwt  = require('jsonwebtoken');
 const md5 = require('md5');
-exports.authLogin = async (req, res, next) => {
+// exports.authLogin = async (req, res, next) => {
+    exports.authLogin = async (req, res) => {
     try {
         const jwtExpirySeconds = "10h";
         const encryptedPassword= md5(req.body.password);

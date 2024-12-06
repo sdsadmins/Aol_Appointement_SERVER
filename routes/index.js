@@ -33,7 +33,7 @@ const apex_loginRouter = require('./apex_login');
 const loginRouter = require('../routes/auth/login.js');
 
 
-router.post('/token', tokenController.authLogin);
+// router.post('/token', tokenController.authLogin);
 router.post('/upload', checkAuth, uploadController.uploadFile);
 
 router.use('/appointment_tags', appointment_tagsRouter);

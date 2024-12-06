@@ -56,7 +56,7 @@ exports.update = async (id, object) => {
 }
 
 exports.remove = async (id) => {
-    const query = `DELETE from appointment_request WHERE id = ? `;
+    const query = `DELETE from appointment_request WHERE ap_id = ?`;
     return deleteRow(query, [id]);
 }
 
@@ -117,5 +117,18 @@ exports.updateAppointmentStatus = async (appid, status) => {
     const result = await updateRow(query, [status, appid]);
     return result;
 };
+
+exports.restore = async (appid) => {
+    const query = `UPDATE appointment_request SET deleted_app = '0' WHERE ap_id = ?`; // Assuming 'deleted_app' indicates if the appointment is deleted
+    const result = await updateRow(query, [appid]);
+    return result ? this.findOneByApId(appid) : null; // Return the restored appointment details
+};
+
+exports.updateDeletedApp = async (appid, status) => {
+    const query = `UPDATE appointment_request SET deleted_app = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [status, appid]);
+    return result;
+};
+
 
 

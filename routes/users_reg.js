@@ -4,6 +4,7 @@ const controller = require('../controllers/users_reg');
 const bodyValidator = require("../middleware/bodyValidator");
 const updateValidator = require("../middleware/updateValidator");
 const createDto = require('../dto/users_reg.dto');
+const fileUpload = require('express-fileupload');
 const router = express.Router();
 
 router.get('/', checkAuth, controller.getAll);
@@ -18,6 +19,7 @@ router.post('/register', controller.register);
 router.post('/login', controller.login);
 router.post('/updatePasswordByEmail', controller.updatePasswordByEmail);
 router.get('/usersData/:user_id', checkAuth, controller.getUserData);
+router.post('/decryptAndUpdateSingleUser', controller.decryptAndUpdateSingleUser);
 
 
 module.exports = router;

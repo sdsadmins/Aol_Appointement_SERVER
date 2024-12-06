@@ -20,6 +20,8 @@ const fileWriter = rfs.createStream('errors.log', {
 const {StatusCodes} = require('http-status-codes');
 const fs = require("fs");
 
+require('events').EventEmitter.defaultMaxListeners = 15;
+
 const allowCrossDomain = function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'POST, GET, PUT,PATCH, DELETE, OPTIONS, ');
@@ -75,3 +77,5 @@ http.createServer(app).listen(port, () => {
 process.on("unhandledRejection", (reason, p) => {
     console.error("Unhandled Rejection at:", p, "reason:", reason)
 });
+
+app.use('/uploads', express.static('uploads'));
