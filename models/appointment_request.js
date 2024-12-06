@@ -170,4 +170,21 @@ exports.classifyAppointments = async () => {
     return classifiedAppointments;
 };
 
+exports.getAppointmentsFromDate = async (userId, startDate) => {
+    let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) >= ?`;
+    const params = [startDate];
+
+    if (userId) {
+        query += ` AND user_id = ?`;
+        params.push(userId);
+    }
+
+    console.log('Executing query:', query, 'with params:', params); // Debugging line
+
+    const results = await getRows(query, params);
+    console.log('Query results:', results); // Log the results
+
+    return results;
+};
+
 

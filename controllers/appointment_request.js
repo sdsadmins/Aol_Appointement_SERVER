@@ -530,6 +530,29 @@ exports.deleteAppointment = async (req, res, next) => {
 	}
 };
 
+exports.getUpcomingAppointments = async (req, res, next) => {
+	try {
+		const userId = req.params.user_id; // Extract user_id from the route parameter
+		const today = new Date();
+		const dayAfterTomorrow = new Date(today);
+		dayAfterTomorrow.setDate(today.getDate() + 2); // Increment the date by 2 to get the day after tomorrow
+		const dateString = dayAfterTomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+
+		const data = await model.getAppointmentsFromDate(userId, dateString); // Fetch data starting from the day after tomorrow
+
+		console.log('Data received from model:', data); // Log the data
+
+		if (data && data.length > 0) {
+			res.status(StatusCodes.OK).send(data);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No upcoming appointments found." });
+		}
+	} catch (e) {
+		console.log(`Error in getUpcomingAppointments`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 
 
 
