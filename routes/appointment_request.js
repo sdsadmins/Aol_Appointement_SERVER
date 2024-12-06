@@ -26,7 +26,7 @@ router.post('/make_undone', checkAuth, controller.makeAppointmentUndone);
 router.post('/more_info_appointment/:user_id', checkAuth, controller.moreInfoAppointment);
 router.get('/restore_appointment/:ap_id', checkAuth, controller.restoreAppointment);
 router.post('/deleteAppt/:user_id', checkAuth, controller.deleteAppointment);
-router.get('/tomorrowAppointments/:user_id', checkAuth, controller.getTomorrowsAppointments);
-router.get('/todayAppointments/:user_id', controller.getTodayAppointments);
+router.get('/tomorrowAppointments/:id', checkAuth, controller.getTomorrowsAppointments);
+router.get('/todayAppointments/:id', controller.getTodayAppointments);
 
 module.exports = router;
