@@ -429,16 +429,22 @@ exports.getTodayAppointments = async (req, res, next) => {
 		const today = new Date();
 		const dateString = today.toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
 
-		const data = await model.getAppointmentsByDate(null, dateString); // Pass null or remove userId filtering
+		const data = await model.getAppointmentsByDate(null, dateString); // Fetch data
+
+		console.log('Data received from model:', data); // Log the data
 
 		if (data && data.length > 0) {
 			const classifiedAppointments = data.map(appointment => {
-				const hour = new Date(appointment.ap_time * 1000).getHours(); // Convert Unix timestamp to hours
+				const date = new Date(appointment.ap_time * 1000); // Convert Unix timestamp to Date
+				const hours = date.getUTCHours().toString().padStart(2, '0');
+				const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+				const seconds = date.getUTCSeconds().toString().padStart(2, '0');
+				const timeString = `${hours}:${minutes}:${seconds}`; // Format as hh:mm:ss
 
 				let timePeriod;
-				if (hour < 16) {
+				if (date.getUTCHours() < 16) {
 					timePeriod = 'Morning';
-				} else if (hour >= 16 && hour < 19) {
+				} else if (date.getUTCHours() >= 16 && date.getUTCHours() < 19) {
 					timePeriod = 'Evening';
 				} else {
 					timePeriod = 'Night';
@@ -446,7 +452,8 @@ exports.getTodayAppointments = async (req, res, next) => {
 
 				return {
 					...appointment,
-					timePeriod // Add the classification
+					timePeriod, // Add the classification
+					formattedTime: timeString // Add the formatted time
 				};
 			});
 
@@ -456,6 +463,28 @@ exports.getTodayAppointments = async (req, res, next) => {
 		}
 	} catch (e) {
 		console.log(`Error in getTodayAppointments`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.getTomorrowsAppointments = async (req, res, next) => {
+	try {
+		const today = new Date();
+		const tomorrow = new Date(today);
+		tomorrow.setDate(today.getDate() + 1); // Increment the date by 1 to get tomorrow's date
+		const dateString = tomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+
+		const data = await model.getAppointmentsByDate(null, dateString); // Fetch data for tomorrow
+
+		console.log('Data received from model:', data); // Log the data
+
+		if (data && data.length > 0) {
+			res.status(StatusCodes.OK).send(data);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for tomorrow." });
+		}
+	} catch (e) {
+		console.log(`Error in getTomorrowsAppointments`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };

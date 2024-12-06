@@ -97,7 +97,7 @@ exports.getUserHistory = async (userId, emailId) => {
 };
 
 exports.getAppointmentsByDate = async (userId, dateString) => {
-    let query = `SELECT * FROM appointment_request WHERE DATE(from_date) = DATE(?)`;
+    let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ?`;
     const params = [dateString];
 
     if (userId) {
@@ -107,7 +107,10 @@ exports.getAppointmentsByDate = async (userId, dateString) => {
 
     console.log('Executing query:', query, 'with params:', params);
 
-    return getRows(query, params);
+    const results = await getRows(query, params);
+    console.log('Query results:', results);
+
+    return results;
 };
 
 exports.findOneByApId = async (apId) => {
