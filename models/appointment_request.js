@@ -97,8 +97,17 @@ exports.getUserHistory = async (userId, emailId) => {
 };
 
 exports.getAppointmentsByDate = async (userId, dateString) => {
-    const query = `SELECT * FROM appointment_request WHERE user_id = ? AND DATE(from_date) = ?`;
-    return getRows(query, [userId, dateString]);
+    let query = `SELECT * FROM appointment_request WHERE DATE(from_date) = DATE(?)`;
+    const params = [dateString];
+
+    if (userId) {
+        query += ` AND user_id = ?`;
+        params.push(userId);
+    }
+
+    console.log('Executing query:', query, 'with params:', params);
+
+    return getRows(query, params);
 };
 
 exports.findOneByApId = async (apId) => {
@@ -116,6 +125,33 @@ exports.updateAppointmentStatus = async (appid, status) => {
     const query = `UPDATE appointment_request SET ap_status = ? WHERE ap_id = ?`;
     const result = await updateRow(query, [status, appid]);
     return result;
+};
+
+// Fetch and classify appointments
+exports.classifyAppointments = async () => {
+    const query = 'SELECT * FROM appointment_request';
+    const results = await getRows(query);
+
+    // Process and classify appointments
+    const classifiedAppointments = results.map(appointment => {
+        const hour = new Date(appointment.ap_time * 1000).getHours(); // Convert Unix timestamp to hours
+
+        let timePeriod;
+        if (hour < 16) {
+            timePeriod = 'Morning';
+        } else if (hour >= 16 && hour < 19) {
+            timePeriod = 'Evening';
+        } else {
+            timePeriod = 'Night';
+        }
+
+        return {
+            ...appointment,
+            timePeriod // Add the classification
+        };
+    });
+
+    return classifiedAppointments;
 };
 
 

@@ -424,4 +424,40 @@ exports.makeAppointmentUndone = async (req, res, next) => {
 	}
 };
 
+exports.getTodayAppointments = async (req, res, next) => {
+	try {
+		const today = new Date();
+		const dateString = today.toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
+
+		const data = await model.getAppointmentsByDate(null, dateString); // Pass null or remove userId filtering
+
+		if (data && data.length > 0) {
+			const classifiedAppointments = data.map(appointment => {
+				const hour = new Date(appointment.ap_time * 1000).getHours(); // Convert Unix timestamp to hours
+
+				let timePeriod;
+				if (hour < 16) {
+					timePeriod = 'Morning';
+				} else if (hour >= 16 && hour < 19) {
+					timePeriod = 'Evening';
+				} else {
+					timePeriod = 'Night';
+				}
+
+				return {
+					...appointment,
+					timePeriod // Add the classification
+				};
+			});
+
+			res.status(StatusCodes.OK).send(classifiedAppointments);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for today." });
+		}
+	} catch (e) {
+		console.log(`Error in getTodayAppointments`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 

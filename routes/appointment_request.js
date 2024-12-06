@@ -24,5 +24,6 @@ router.post('/update_appointment/:user_id', checkAuth, controller.updateAppointm
 router.post('/make_appointment_done', checkAuth, controller.makeAppointmentDone);
 router.post('/make_undone', checkAuth, controller.makeAppointmentUndone);
 router.post('/more_info_appointment/:user_id', checkAuth, controller.moreInfoAppointment);
+router.get('/todayAppointments', checkAuth, controller.getTodayAppointments);
 
 module.exports = router;
