@@ -170,21 +170,26 @@ exports.classifyAppointments = async () => {
     return classifiedAppointments;
 };
 
-exports.getAppointmentsFromDate = async (userId, startDate) => {
-    let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) >= ?`;
-    const params = [startDate];
+// exports.getAppointmentsFromDate = async (userId, startDate) => {
+//     let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) >= ?`;
+//     const params = [startDate];
 
-    if (userId) {
-        query += ` AND user_id = ?`;
-        params.push(userId);
-    }
+//     if (userId) {
+//         query += ` AND user_id = ?`;
+//         params.push(userId);
+//     }
 
-    console.log('Executing query:', query, 'with params:', params); // Debugging line
+//     console.log('Executing query:', query, 'with params:', params); // Debugging line
 
-    const results = await getRows(query, params);
-    console.log('Query results:', results); // Log the results
+//     const results = await getRows(query, params);
+//     console.log('Query results:', results); // Log the results
 
-    return results;
+//     return results;
+// };
+
+exports.getUpcomingAppointmentsByDate = async (dateString) => {
+    const query = `SELECT * FROM appointment_request WHERE ap_date > NOW()`; // Fetch appointments after the current date
+    return getRows(query);
 };
 
 

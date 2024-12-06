@@ -28,6 +28,6 @@ router.get('/restore_appointment/:ap_id', checkAuth, controller.restoreAppointme
 router.post('/deleteAppt/:user_id', checkAuth, controller.deleteAppointment);
 router.get('/tomorrowAppointments/:id', checkAuth, controller.getTomorrowsAppointments);
 router.get('/todayAppointments/:id', controller.getTodayAppointments);
-router.get('/upcomingAppointments/:user_id', checkAuth, controller.getUpcomingAppointments);
+router.get('/upcomingAppointmentsByDate/:date', checkAuth, controller.getUpcomingAppointmentsByDate);
 
 module.exports = router;
