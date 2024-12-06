@@ -192,4 +192,10 @@ exports.getUpcomingAppointmentsByDate = async (dateString) => {
     return getRows(query);
 };
 
+exports.getAppointmentCountByDate = async (userId, apDate) => {
+    const query = `SELECT COUNT(*) as total FROM appointment_request WHERE user_id = ? AND DATE(ap_date) = ?`;
+    const result = await getRows(query, [userId, apDate]);
+    return result[0] ? result[0].total : 0; // Return the count or 0 if no results
+};
+
 

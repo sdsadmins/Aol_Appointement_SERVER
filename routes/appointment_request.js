@@ -29,5 +29,6 @@ router.post('/deleteAppt/:user_id', checkAuth, controller.deleteAppointment);
 router.get('/tomorrowAppointments/:id', checkAuth, controller.getTomorrowsAppointments);
 router.get('/todayAppointments/:id', controller.getTodayAppointments);
 router.get('/upcomingAppointmentsByDate/:date', checkAuth, controller.getUpcomingAppointmentsByDate);
+router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCount);
 
 module.exports = router;

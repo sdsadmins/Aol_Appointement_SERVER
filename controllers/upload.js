@@ -42,6 +42,7 @@
 
 // multerConfig.js
 
+// upload.js (same file)
 const multer = require('multer');
 const path = require('path');
 const { StatusCodes } = require('http-status-codes');
@@ -63,13 +64,13 @@ const upload = multer({
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
         } else {
-            cb(new Error('Only image files are allowed'), false);
+            cb(new Error('Only image files are allowed. Please upload a valid image.'), false);
         }
     }
 });
 
-// Export the controller methods
-exports.uploadFile = (req, res) => {
+// Export a function to handle file upload
+exports.uploadFile = (req, res, next) => {
     upload.single('file')(req, res, (err) => {
         if (err) {
             return res.status(StatusCodes.BAD_REQUEST).send({ message: err.message });
@@ -77,12 +78,11 @@ exports.uploadFile = (req, res) => {
         if (!req.file) {
             return res.status(StatusCodes.BAD_REQUEST).send({ message: 'No file uploaded' });
         }
-        return res.status(StatusCodes.OK).send({ 
-            message: 'File uploaded successfully',
-            data: req.file.filename 
-        });
+        // Successful file upload
+        return next(); // Continue to the next middleware or function
     });
 };
 
 // Export multer configuration if needed elsewhere
 exports.upload = upload;
+

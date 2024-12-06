@@ -575,6 +575,21 @@ exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 	}
 };
 
+exports.getRightNavCount = async (req, res, next) => {
+	try {
+		const userId = req.params.user_id; // Extract user ID from the route parameter
+		const apDate = req.body.ap_date; // Extract appointment date from the request body
+
+		// Call the model method to get the count of appointments for the given date and user
+		const count = await model.getAppointmentCountByDate(userId, apDate);
+
+		res.status(StatusCodes.OK).send({ count });
+	} catch (e) {
+		console.log(`Error in getRightNavCount`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 
 
 
