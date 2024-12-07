@@ -13,6 +13,6 @@ router.put('/:prid', checkAuth, updateValidator(createDto), controller.update);
 router.patch('/:prid', checkAuth, controller.update);
 router.delete('/:prid', checkAuth, controller.remove);
 router.get('/search/:searchKey', checkAuth, controller.search);
-router.get('/state/:state_id', checkAuth, controller.getByState);
+router.get('/state/:state_id',  controller.getByState);
 
 module.exports = router;
