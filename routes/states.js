@@ -6,7 +6,7 @@ const updateValidator = require("../middleware/updateValidator");
 const createDto = require('../dto/states.dto');
 const router = express.Router();
 
-router.get('/', checkAuth, controller.getAll);
+router.get('/', controller.getAll);
 router.post('/', checkAuth, bodyValidator(createDto), controller.create);
 router.get('/:id', checkAuth, controller.getOne);
 router.put('/:id', checkAuth, updateValidator(createDto), controller.update);
