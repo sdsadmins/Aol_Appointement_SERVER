@@ -11,6 +11,7 @@ const uuid = require('uuid');
 const path = require('path');
 const multer = require('multer');
 const crypto = require('crypto');
+const { sendMailer } = require('../services/emailService');
 
 
 
@@ -28,7 +29,7 @@ const storage = multer.diskStorage({
 // Initialize multer
 const upload = multer({
     storage: storage,
-   
+
 });
 
 exports.getAll = async (req, res, next) => {
@@ -420,10 +421,10 @@ exports.decryptAndUpdateSingleUser = async (req, res) => {
     try {
         const email = req.body.email;
         const originalPassword = req.body.password;
-        
+
         // Find the user by email
         const user = await model.findOneByEmail(email);
-        
+
         if (!user || !user[0]) {
             return res.status(404).send({
                 message: "User not found"
@@ -433,10 +434,10 @@ exports.decryptAndUpdateSingleUser = async (req, res) => {
         try {
             // Hash the original password for updating
             const hashedPassword = await bcrypt.hash(originalPassword, 10);
-            
+
             // Update the user's password
             const result = await model.updatePasswordByEmail(email, hashedPassword);
-            
+
             if (result) {
                 res.status(200).send({
                     message: "Password updated successfully",
@@ -468,26 +469,31 @@ exports.forgotPassword = async (req, res) => {
     const lowerEmail = email_id.toLowerCase();
 
     try {
-        // Use the existing model method to find user by email
         const user = await model.findOneByEmail(lowerEmail);
-        
+
         if (!user || !user[0]) {
-            return res.status(404).json({ 
-                error: 'This email id is not registered with us. Please create a new account.' 
+            return res.status(404).json({
+                error: 'This email id is not registered with us. Please create a new account.'
             });
         }
+        const tempPassword = Math.random().toString(36).slice(-8);
+        // Decrypt the password
+        // const decryptedPassword = decryptPassword(user[0].password); // Use the decrypt function
 
-        // Generate a reset token (you may want to store this in the database)
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        
-        // Generate reset link
-        const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}&email=${encodeURIComponent(lowerEmail)}`;
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+        const updated = await model.updatePasswordByEmail(email_id, hashedPassword);
+
+        if (!updated) {
+            return res.status(500).send({ message: "Failed to update password" });
+        }
+        // const resetLink = `${req.protocol}://${req.get('host')}/reset-password?email=${encodeURIComponent(lowerEmail)}`;
 
         // Prepare email content
         const emailContent = `
             <p>Dear ${user[0].full_name},</p>
-            <p>You have requested to reset your password. Please click the link below to reset your password:</p>
-            <p><a href="${resetLink}">Reset Password</a></p>
+            <p>This is your new password: <b>${tempPassword}</b></p>
+            <p>You can change this password after logging in</p>
             <p>If you didn't request this, please ignore this email.</p>
             <p>Best regards,<br>Your Application Team</p>
         `;
@@ -495,18 +501,18 @@ exports.forgotPassword = async (req, res) => {
         // Send email using the emailService
         await sendMailer(
             lowerEmail,
-            'Password Reset Request',
+            'Password Recovery',
             emailContent
         );
 
-        return res.status(200).json({ 
-            message: 'Please check your email to reset your password.' 
+        return res.status(200).json({
+            message: 'Please check your email for your password.'
         });
 
     } catch (error) {
         console.error('Error in forgot password process:', error);
-        return res.status(500).json({ 
-            error: 'An error occurred while processing your request.' 
+        return res.status(500).json({
+            error: 'An error occurred while processing your request.'
         });
     }
 };
