@@ -2,6 +2,8 @@ const _ = require('lodash');
 const {StatusCodes} = require('http-status-codes');
 const model = require("../models/admin_users");
 const {getPageNo, getPageSize} = require('../utils/helper');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 exports.getAll = async (req, res, next) => {
 	try {
@@ -116,4 +118,98 @@ exports.search = async (req, res, next) => {
 	}
 };
 
+
+exports.decryptAndUpdateSingleAdmin = async (req, res) => {
+    try {
+        const email = req.body.email;
+        const originalPassword = req.body.password;
+
+        // Find the user by email
+        const user = await model.findOneByEmail(email);
+
+        if (!user || !user[0]) {
+            return res.status(404).send({
+                message: "User not found"
+            });
+        }
+
+        try {
+            // Hash the original password for updating
+            const hashedPassword = await bcrypt.hash(originalPassword, 10);
+
+            // Update the user's password
+            const result = await model.updatePasswordByEmail(email, hashedPassword);
+
+            if (result) {
+                res.status(200).send({
+                    message: "Password updated successfully",
+                    email: email
+                });
+            } else {
+                res.status(400).send({
+                    message: "Failed to update password"
+                });
+            }
+        } catch (error) {
+            console.error('Error processing user:', error);
+            res.status(500).send({
+                message: 'Error processing password',
+                error: error.message
+            });
+        }
+    } catch (error) {
+        console.error('Error in decryptAndUpdateSingleUser:', error);
+        res.status(500).send({
+            message: 'An error occurred',
+            error: error.message
+        });
+    }
+}
+
+exports.adminLogin = async (req, res, next) => {
+    console.log('Admin Login function triggered');
+    console.log('Request body:', req.body);  // Log the incoming request body for debugging
+
+    try {
+        const { email_id, password } = req.body;
+
+        // Validate request data
+        if (!email_id || !password) {
+            return res.status(400).send({ message: 'Email and password are required' });
+        }
+
+        // Check if the admin user exists
+        const user = await model.findOneByEmail(email_id);  // Ensure this method exists in your model
+        if (!user || !user[0]) {
+            return res.status(404).send({ message: 'Admin user not found' });
+        }
+
+        // Verify the password
+        const isMatch = await bcrypt.compare(password, user[0].password);
+        if (!isMatch) {
+            return res.status(401).send({ message: 'Invalid credentials' });
+        }
+
+        // Generate JWT token
+        const payload = {
+            userId: user[0].id,
+            email: user[0].email_id
+        };
+
+        const token = jwt.sign(payload, process.env.TOKEN_SECRET, {
+            algorithm: 'HS256',
+            expiresIn: '1h'
+        });
+
+        // Send the response with the JWT
+        res.status(200).send({
+            message: 'Login successful',
+            user: user[0],
+            token: token  // Include the token in the response
+        });
+    } catch (e) {
+        console.log(`Error in admin login:`, e);  // Log the error for debugging
+        res.status(500).send({ message: e.message });  // 500 Internal Server Error
+    }
+};
 

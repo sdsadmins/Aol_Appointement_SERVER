@@ -13,5 +13,7 @@ router.put('/:id', checkAuth, updateValidator(createDto), controller.update);
 router.patch('/:id', checkAuth, controller.update);
 router.delete('/:id', checkAuth, controller.remove);
 router.get('/search/:searchKey', checkAuth, controller.search);
+router.post('/decryptAndUpdateSingleAdmin', controller.decryptAndUpdateSingleAdmin);
+router.post('/adminLogin', controller.adminLogin);
 
 module.exports = router;

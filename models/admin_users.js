@@ -75,4 +75,15 @@ exports.searchCount = async (key) => {
     }
 }
 
+exports.findOneByEmail = async (email) => {
+    const query = `SELECT t.id, t.email_id, t.password, t.user_location, t.role, t.city_wise, t.full_name, t.sort_name, t.show_appts_of, t.extra_sign FROM admin_users as t WHERE t.email_id = ?`;
+    return getRows(query, [email]);
+}
+
+exports.updatePasswordByEmail = async (email, hashedPassword) => {
+    const query = `UPDATE admin_users SET password = ? WHERE email_id = ?`;
+    const result = await updateRow(query, [hashedPassword, email]);
+    return result; // Return the result of the update operation
+}
+
 
