@@ -20,6 +20,7 @@ router.post('/login', controller.login);
 router.post('/updatePasswordByEmail', controller.updatePasswordByEmail);
 router.get('/usersData/:user_id', checkAuth, controller.getUserData);
 router.post('/decryptAndUpdateSingleUser', controller.decryptAndUpdateSingleUser);
+router.post('/forgotPassword', controller.forgotPassword);
 
 
 module.exports = router;

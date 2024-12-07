@@ -144,57 +144,101 @@ exports.search = async (req, res, next) => {
     }
 };
 
-exports.register = async (req, res) => {
-    console.log("Middleware triggered"); // Check if the function is triggered
+// exports.register = async (req, res) => {
+//     console.log("Middleware triggered"); // Check if the function is triggered
 
-    // Use multer's file upload middleware
-    upload.single('file')(req, res, async (err) => {
-        if (err) {
-            console.error("Multer error:", err.message);
-            return res.status(400).send({ message: err.message });
+//     // Use multer's file upload middleware
+//     upload.single('file')(req, res, async (err) => {
+//         if (err) {
+//             console.error("Multer error:", err.message);
+//             return res.status(400).send({ message: err.message });
+//         }
+
+//         console.log("Request Body:", req.body); // Log the request body to check for sent data
+//         console.log("Request File:", req.file); // Log the uploaded file data
+
+//         try {
+//             // Ensure that a file has been uploaded
+//             if (!req.file) {
+//                 return res.status(400).send({ message: 'Photo is required' });
+//             }
+
+//             // Proceed with registration logic
+//             const userData = req.body;
+//             const saltRounds = 10;
+
+//             // Hash the password before saving to the database
+//             const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+
+//             // Prepare user data to save, including the file (photo) path
+//             const userDataToSave = {
+//                 ...userData,
+//                 password: hashedPassword,
+//                 photo: req.file.filename  // Store the filename of the uploaded photo
+//             };
+
+//             // Insert the user data into the database
+//             const data = await model.insert(userDataToSave);
+
+//             if (data) {
+//                 return res.status(201).send({
+//                     message: 'User registered successfully',
+//                     data: data
+//                 });
+//             } else {
+//                 return res.status(400).send({ message: "Registration failed" });
+//             }
+//         } catch (error) {
+//             console.error('Error in register:', error);
+//             return res.status(500).send({ message: error.message });
+//         }
+//     });
+// };
+
+exports.register = async (req, res, next) => {
+    console.log('Register function triggered');  // Check if the function is triggered
+    console.log('Request body:', req.body);  // Log the incoming request body for debugging
+    try {
+        const userData = req.body;
+        // Validate user data against the DTO
+        // for (const key in validationDto) {
+        //     if (validationDto[key].required && !userData[key]) {
+        //         console.log(`${key} is required`);  // Log which key is missing
+        //         return res.status(400).send({ message: `${key} is required` });  // 400 Bad Request
+        //     }
+        //     // Check type of each field in userData
+        //     if (typeof userData[key] !== validationDto[key].type) {
+        //         console.log(`${key} must be of type ${validationDto[key].type}, received: ${typeof userData[key]}`);
+        //         return res.status(400).send({ message: `${key} must be of type ${validationDto[key].type}` });
+        //     }
+        // }
+        // Check if 'company' field exists and is a string, if required
+        // if (userData.company && typeof userData.company !== 'string') {
+        //     console.log(`company must be of type string, received: ${typeof userData.company}`);
+        //     return res.status(400).send({ message: 'company must be of type string' });
+        // }
+        // Log the incoming password to check if it's being received correctly
+        console.log("Password received:", userData.password);
+        // Hash the password
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+        // Log the hashed password for debugging
+        console.log("Hashed password:", hashedPassword);
+        const sd = { ...userData, password: hashedPassword };
+        console.log("Data saved:", sd);
+        // Insert the user data with the hashed password
+        const data = await model.insert(sd);
+        console.log("Data saved:", data);  // Log the data returned by insert
+        if (data) {
+            res.status(201).send({ message: 'User registered successfully', data: data });
+        } else {
+            res.status(400).send({ message: "Bad Request!" });
         }
-
-        console.log("Request Body:", req.body); // Log the request body to check for sent data
-        console.log("Request File:", req.file); // Log the uploaded file data
-
-        try {
-            // Ensure that a file has been uploaded
-            if (!req.file) {
-                return res.status(400).send({ message: 'Photo is required' });
-            }
-
-            // Proceed with registration logic
-            const userData = req.body;
-            const saltRounds = 10;
-
-            // Hash the password before saving to the database
-            const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
-
-            // Prepare user data to save, including the file (photo) path
-            const userDataToSave = {
-                ...userData,
-                password: hashedPassword,
-                photo: req.file.filename  // Store the filename of the uploaded photo
-            };
-
-            // Insert the user data into the database
-            const data = await model.insert(userDataToSave);
-
-            if (data) {
-                return res.status(201).send({
-                    message: 'User registered successfully',
-                    data: data
-                });
-            } else {
-                return res.status(400).send({ message: "Registration failed" });
-            }
-        } catch (error) {
-            console.error('Error in register:', error);
-            return res.status(500).send({ message: error.message });
-        }
-    });
+    } catch (e) {
+        console.log(`Error in register:`, e);  // Log the error for debugging
+        res.status(500).send({ message: e.message });  // 500 Internal Server Error
+    }
 };
-
 
 
 // New login function added
@@ -419,4 +463,50 @@ exports.decryptAndUpdateSingleUser = async (req, res) => {
     }
 }
 
-// exports.decryptAndUpdateSingleUser = decryptAndUpdateSingleUser;
+exports.forgotPassword = async (req, res) => {
+    const { email_id } = req.body;
+    const lowerEmail = email_id.toLowerCase();
+
+    try {
+        // Use the existing model method to find user by email
+        const user = await model.findOneByEmail(lowerEmail);
+        
+        if (!user || !user[0]) {
+            return res.status(404).json({ 
+                error: 'This email id is not registered with us. Please create a new account.' 
+            });
+        }
+
+        // Generate a reset token (you may want to store this in the database)
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        
+        // Generate reset link
+        const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}&email=${encodeURIComponent(lowerEmail)}`;
+
+        // Prepare email content
+        const emailContent = `
+            <p>Dear ${user[0].full_name},</p>
+            <p>You have requested to reset your password. Please click the link below to reset your password:</p>
+            <p><a href="${resetLink}">Reset Password</a></p>
+            <p>If you didn't request this, please ignore this email.</p>
+            <p>Best regards,<br>Your Application Team</p>
+        `;
+
+        // Send email using the emailService
+        await sendMailer(
+            lowerEmail,
+            'Password Reset Request',
+            emailContent
+        );
+
+        return res.status(200).json({ 
+            message: 'Please check your email to reset your password.' 
+        });
+
+    } catch (error) {
+        console.error('Error in forgot password process:', error);
+        return res.status(500).json({ 
+            error: 'An error occurred while processing your request.' 
+        });
+    }
+};
