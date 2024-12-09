@@ -584,3 +584,69 @@ exports.forgotPassword = async (req, res) => {
         });
     }
 };
+
+const uploadProfile = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        const allowedExtensions = [".jpg", ".jpeg"];
+        const extension = path.extname(file.originalname);
+        if (!allowedExtensions.includes(extension)) {
+            cb(new Error("Only JPEG/JPG images are allowed"));
+        } else {
+            cb(null, true);
+        }
+    },
+    limits: {
+        fileSize: 2 * 1024 * 1024 // 2 MB limit for file size (adjust as needed)
+    }
+}).single("photo"); // Expecting a file field named 'photo'
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const id = req.params.user_id;
+
+        uploadProfile(req, res, async (err) => {
+            if (err) {
+                return res.status(400).json({ 
+                    message: err.message 
+                });
+            }
+
+            try {
+                const userData = req.body;
+                
+                // If a file is uploaded, include the filename in userData
+                if (req.file) {
+                    userData.photo = req.file.filename;
+                }
+
+                // Remove password if it exists in the request
+                delete userData.password;
+
+                const data = await model.update(id, userData);
+                
+                if (data && data.length > 0) {
+                    res.status(200).json({
+                        message: 'Profile updated successfully',
+                        data: data[0]
+                    });
+                } else {
+                    res.status(404).json({ 
+                        message: "User not found" 
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                res.status(500).json({ 
+                    message: "Error updating profile",
+                    error: error.message 
+                });
+            }
+        });
+    } catch (e) {
+        console.error('Error in updateProfile:', e);
+        res.status(500).json({ 
+            message: e.message 
+        });
+    }
+};
