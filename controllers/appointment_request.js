@@ -2,6 +2,41 @@ const _ = require('lodash');
 const { StatusCodes } = require('http-status-codes');
 const model = require("../models/appointment_request");
 const { getPageNo, getPageSize } = require('../utils/helper');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Add multer storage configuration at the top of the file
+const storage = multer.diskStorage({
+	destination: function (req, file, cb) {
+		const uploadDir = path.join(__dirname, '../uploads/appointments');
+		if (!fs.existsSync(uploadDir)) {
+			fs.mkdirSync(uploadDir, { recursive: true });
+		}
+		cb(null, uploadDir);
+	},
+	filename: function (req, file, cb) {
+		const fileName = `${Date.now()}-${file.originalname}`;
+		cb(null, fileName);
+	}
+});
+
+// Configure multer with file filtering
+const upload = multer({
+	storage: storage,
+	fileFilter: (req, file, cb) => {
+		const allowedTypes = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
+		const ext = path.extname(file.originalname).toLowerCase();
+		if (!allowedTypes.includes(ext)) {
+			cb(new Error('Only PDF, DOC, DOCX, JPG, JPEG, and PNG files are allowed'));
+		} else {
+			cb(null, true);
+		}
+	},
+	limits: {
+		fileSize: 5 * 1024 * 1024 // 5MB limit
+	}
+}).single('attachment');
 
 exports.getAll = async (req, res, next) => {
 	try {
@@ -152,41 +187,56 @@ exports.getLastSecretary = async (req, res, next) => {
 };
 
 exports.submitSelfAppointment = async (req, res, next) => {
-	try {
-		const userId = req.params.user_id; // Extract user_id from the route parameter
-		const appointmentData = {
-			user_id: userId,
-			full_name: req.body.user_full_name,
-			email_id: req.body.user_email,
-			mobile_no: req.body.user_phone,
-			ap_location: req.body.ap_location,
-			designation: req.body.designation,
-			meet_subject: req.body.meet_subject || '', // Pass blank value if not provided
-			meet_purpose: req.body.meet_purpose,
-			no_people: req.body.no_people,
-			from_date: req.body.from_date,
-			to_date: req.body.to_date,
-			attachment: req.body.attachment,
-			currently_doing: req.body.currently_doing,
-			dop: req.body.dop,
-			toa: req.body.toa || 'offline', // Default to 'offline' if not provided
-			curr_loc: req.body.curr_loc || '', // Pass blank value if not provided
-			selCountry: req.body.selCountry || '', // Pass blank value if not provided
-			selState: req.body.selState || '', // Pass blank value if not provided
-			selCity: req.body.selCity || '', // Pass blank value if not provided
-			// Add any other fields as necessary
-		};
-
-		const data = await model.insert(appointmentData); // Call the model's insert method
-		if (data) {
-			res.status(StatusCodes.CREATED).send({ message: 'Appointment created', data: data });
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+	upload(req, res, async (err) => {
+		if (err) {
+			console.log("Error during file upload:", err);
+			return res.status(StatusCodes.BAD_REQUEST).send({
+				message: err.message
+			});
 		}
-	} catch (e) {
-		console.log(`Error in submitSelfAppointment`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+
+		try {
+			const userId = req.params.user_id;
+			const appointmentData = {
+				user_id: userId,
+				full_name: req.body.user_full_name,
+				email_id: req.body.user_email,
+				mobile_no: req.body.user_phone,
+				ap_location: req.body.ap_location,
+				designation: req.body.designation,
+				meet_subject: req.body.meet_subject || '',
+				meet_purpose: req.body.meet_purpose,
+				no_people: req.body.no_people,
+				from_date: req.body.from_date,
+				to_date: req.body.to_date,
+				attachment: req.file ? req.file.filename : '', // Store filename if file was uploaded
+				currently_doing: req.body.currently_doing,
+				dop: req.body.dop,
+				toa: req.body.toa || 'offline',
+				curr_loc: req.body.curr_loc || '',
+				selCountry: req.body.selCountry || '',
+				selState: req.body.selState || '',
+				selCity: req.body.selCity || ''
+			};
+
+			const data = await model.insert(appointmentData);
+			if (data) {
+				res.status(StatusCodes.CREATED).send({ 
+					message: 'Appointment created', 
+					data: data 
+				});
+			} else {
+				res.status(StatusCodes.BAD_REQUEST).send({ 
+					message: "Bad Request!" 
+				});
+			}
+		} catch (e) {
+			console.log(`Error in submitSelfAppointment`, e);
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
+				message: e.message 
+			});
+		}
+	});
 };
 
 exports.submitGuestAppointment = async (req, res, next) => {
