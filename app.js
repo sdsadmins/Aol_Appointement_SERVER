@@ -38,9 +38,9 @@ app.use(logger('dev', {
     stream: fileWriter
 }))
 app.use(logger('dev'));
+// app.use(fileUpload());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
-app.use(fileUpload());
 app.use("/api/v1", routes);
 app.use('/favicon.ico', (req, res) => {
     res.status(StatusCodes.OK).send();
