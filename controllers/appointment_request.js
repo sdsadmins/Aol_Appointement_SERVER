@@ -208,6 +208,8 @@ exports.submitSelfAppointment = async (req, res, next) => {
 				meet_subject: req.body.meet_subject || '',
 				meet_purpose: req.body.meet_purpose,
 				no_people: req.body.no_people,
+				no_people_names: req.body.no_people_names,
+				no_people_numbers: req.body.no_people_numbers,
 				from_date: req.body.from_date,
 				to_date: req.body.to_date,
 				attachment: req.file ? req.file.filename : '', // Store the filename
