@@ -92,8 +92,8 @@ exports.getLastSecretary = async (userId, forAp) => {
 };
 
 exports.getUserHistory = async (userId, emailId) => {
-    const query = `SELECT * FROM appointment_request WHERE user_id = ? AND email_id = ?`;
-    return getRows(query, [userId, emailId]);
+    const query = `SELECT * FROM appointment_request WHERE user_id = ? AND (email_id = ? OR ref_email_id = ?)`;
+    return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
 exports.getAppointmentsByDate = async (userId, dateString) => {

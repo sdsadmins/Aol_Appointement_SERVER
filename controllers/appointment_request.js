@@ -293,6 +293,8 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				ref_email_id: req.body.ref_email_id,
 				ref_country_code: req.body.ref_country_code,
 				ref_mobile_no: req.body.ref_mobile_no,
+				for_ap: "other",
+				ap_status: "pending"
 			};
 
 			const data = await model.insert(appointmentData);
