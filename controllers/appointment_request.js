@@ -198,6 +198,7 @@ exports.submitSelfAppointment = async (req, res, next) => {
 		try {
 			const userId = req.params.user_id;
 			const appointmentData = {
+				ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
 				user_id: userId,
 				full_name: req.body.user_full_name,
 				email_id: req.body.user_email,
@@ -209,14 +210,17 @@ exports.submitSelfAppointment = async (req, res, next) => {
 				no_people: req.body.no_people,
 				from_date: req.body.from_date,
 				to_date: req.body.to_date,
-				attachment: req.file ? req.file.filename : '', // Store filename if file was uploaded
+				attachment: req.file ? req.file.filename : '', // Store the filename
+				// attachment_url: req.file ? `http://localhost:${process.env.PORT}/uploads/appointments/${req.file.filename}` : '', // Construct the URL
 				currently_doing: req.body.currently_doing,
 				dop: req.body.dop,
 				toa: req.body.toa || 'offline',
 				curr_loc: req.body.curr_loc || '',
 				selCountry: req.body.selCountry || '',
 				selState: req.body.selState || '',
-				selCity: req.body.selCity || ''
+				selCity: req.body.selCity || '',
+				for_ap: "me",
+				ap_status: "pending"
 			};
 
 			const data = await model.insert(appointmentData);
@@ -240,51 +244,59 @@ exports.submitSelfAppointment = async (req, res, next) => {
 };
 
 exports.submitGuestAppointment = async (req, res, next) => {
-	try {
-		const userId = req.params.user_id; // Extract user_id from the route parameter
-		const appointmentData = {
-			user_id: userId,
-			ap_location: req.body.ap_location,
-			full_name: req.body.full_name,
-			email_id: req.body.email_id,
-			country_code: req.body.country_code,
-			mobile_no: req.body.mobile_no,
-			designation: req.body.designation,
-			// company: req.body.company,
-			country: req.body.country,
-			state: req.body.state,
-			city: req.body.city,
-			meet_purpose: req.body.meet_purpose,
-			no_people: req.body.no_people,
-			from_date: req.body.from_other_date,
-			to_date: req.body.to_other_date,
-			picture: req.body.picture,
-			attachment: req.body.attachment,
-			toa: req.body.toa || 'offline', // Default to 'offline' if not provided
-			curr_loc: req.body.curr_loc || '', // Pass blank value if not provided
-			currently_doing: req.body.currently_doing,
-			dop: req.body.dop,
-			selCountry: req.body.selCountry || '', // Pass blank value if not provided
-			selState: req.body.selState || '', // Pass blank value if not provided
-			selCity: req.body.selCity || '', // Pass blank value if not provided
-			no_people_names: req.body.no_people_name,
-			no_people_numbers: req.body.no_people_number,
-			no_people_eleven_details: req.body.no_people_eleven_details,
-			ref_email_id: req.body.ref_email_id_other,
-			ref_country_code: req.body.ref_ccode_other,
-			ref_mobile_no: req.body.ref_mobile_no_other,
-		};
-
-		const data = await model.insert(appointmentData); // Call the model's insert method
-		if (data) {
-			res.status(StatusCodes.CREATED).send({ message: 'Guest appointment created', data: data });
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+	upload(req, res, async (err) => {
+		if (err) {
+			console.log("Error during file upload:", err);
+			return res.status(StatusCodes.BAD_REQUEST).send({
+				message: err.message
+			});
 		}
-	} catch (e) {
-		console.log(`Error in submitGuestAppointment`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+
+		try {
+			const userId = req.params.user_id;
+			const appointmentData = {
+				user_id: userId,
+				ap_location: req.body.ap_location,
+				full_name: req.body.full_name,
+				email_id: req.body.email_id,
+				country_code: req.body.country_code,
+				mobile_no: req.body.mobile_no,
+				designation: req.body.designation,
+				country: req.body.country,
+				state: req.body.state,
+				city: req.body.city,
+				meet_purpose: req.body.meet_purpose,
+				no_people: req.body.no_people,
+				from_date: req.body.from_other_date,
+				to_date: req.body.to_other_date,
+				picture: req.body.picture,
+				attachment: req.file ? req.file.filename : '',
+				toa: req.body.toa || 'offline',
+				curr_loc: req.body.curr_loc || '',
+				currently_doing: req.body.currently_doing,
+				dop: req.body.dop,
+				selCountry: req.body.selCountry || '',
+				selState: req.body.selState || '',
+				selCity: req.body.selCity || '',
+				no_people_names: req.body.no_people_name,
+				no_people_numbers: req.body.no_people_number,
+				no_people_eleven_details: req.body.no_people_eleven_details,
+				ref_email_id: req.body.ref_email_id_other,
+				ref_country_code: req.body.ref_ccode_other,
+				ref_mobile_no: req.body.ref_mobile_no_other,
+			};
+
+			const data = await model.insert(appointmentData);
+			if (data) {
+				res.status(StatusCodes.CREATED).send({ message: 'Guest appointment created', data: data });
+			} else {
+				res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+			}
+		} catch (e) {
+			console.log(`Error in submitGuestAppointment`, e);
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+		}
+	});
 };
 
 exports.getUserHistory = async (req, res, next) => {

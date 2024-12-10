@@ -389,7 +389,7 @@ exports.login = async (req, res, next) => {
         // const token = jwt.sign(payload, process.env.SECRET_KEY, { expiresIn: '1h' });  // Set expiration time as needed (e.g., 1 hour)
         const token = jwt.sign(payload, process.env.TOKEN_SECRET, {
             algorithm: 'HS256',
-            expiresIn: '1h'
+            expiresIn: '24h'
         })
         // Send the response with the JWT
         res.status(200).send({
