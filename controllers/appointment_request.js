@@ -36,7 +36,7 @@ const upload = multer({
 	limits: {
 		fileSize: 5 * 1024 * 1024 // 5MB limit
 	}
-}).single('attachment');
+}).fields([{ name: 'attachment', maxCount: 1 }, { name: 'picture', maxCount: 1 }]);
 
 exports.getAll = async (req, res, next) => {
 	try {
@@ -225,25 +225,26 @@ exports.submitSelfAppointment = async (req, res, next) => {
 
 			const data = await model.insert(appointmentData);
 			if (data) {
-				res.status(StatusCodes.CREATED).send({ 
-					message: 'Appointment created', 
-					data: data 
+				res.status(StatusCodes.CREATED).send({
+					message: 'Appointment created',
+					data: data
 				});
 			} else {
-				res.status(StatusCodes.BAD_REQUEST).send({ 
-					message: "Bad Request!" 
+				res.status(StatusCodes.BAD_REQUEST).send({
+					message: "Bad Request!"
 				});
 			}
 		} catch (e) {
 			console.log(`Error in submitSelfAppointment`, e);
-			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
-				message: e.message 
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+				message: e.message
 			});
 		}
 	});
 };
 
 exports.submitGuestAppointment = async (req, res, next) => {
+	// Ensure upload logic is working correctly
 	upload(req, res, async (err) => {
 		if (err) {
 			console.log("Error during file upload:", err);
@@ -254,7 +255,13 @@ exports.submitGuestAppointment = async (req, res, next) => {
 
 		try {
 			const userId = req.params.user_id;
+
+			// Ensure files are captured correctly
+			const attachments = req.files['attachment'] ? req.files['attachment'].map(file => file.filename) : [];
+			const pictures = req.files['picture'] ? req.files['picture'].map(file => file.filename) : [];
+
 			const appointmentData = {
+				ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
 				user_id: userId,
 				ap_location: req.body.ap_location,
 				full_name: req.body.full_name,
@@ -269,8 +276,8 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				no_people: req.body.no_people,
 				from_date: req.body.from_other_date,
 				to_date: req.body.to_other_date,
-				picture: req.body.picture,
-				attachment: req.file ? req.file.filename : '',
+				picture: pictures.length > 0 ? pictures[0] : '', // Ensure only one file for 'picture'
+				attachment: attachments.length > 0 ? attachments[0] : '', // Ensure only one file for 'attachment'
 				toa: req.body.toa || 'offline',
 				curr_loc: req.body.curr_loc || '',
 				currently_doing: req.body.currently_doing,
@@ -281,20 +288,27 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				no_people_names: req.body.no_people_name,
 				no_people_numbers: req.body.no_people_number,
 				no_people_eleven_details: req.body.no_people_eleven_details,
-				ref_email_id: req.body.ref_email_id_other,
-				ref_country_code: req.body.ref_ccode_other,
-				ref_mobile_no: req.body.ref_mobile_no_other,
+				ref_email_id: req.body.ref_email_id,
+				ref_country_code: req.body.ref_country_code,
+				ref_mobile_no: req.body.ref_mobile_no,
 			};
 
 			const data = await model.insert(appointmentData);
 			if (data) {
-				res.status(StatusCodes.CREATED).send({ message: 'Guest appointment created', data: data });
+				res.status(StatusCodes.CREATED).send({
+					message: 'Guest appointment created',
+					data: data
+				});
 			} else {
-				res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+				res.status(StatusCodes.BAD_REQUEST).send({
+					message: "Bad Request!"
+				});
 			}
 		} catch (e) {
 			console.log(`Error in submitGuestAppointment`, e);
-			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+				message: e.message
+			});
 		}
 	});
 };
@@ -415,7 +429,7 @@ exports.moreInfoAppointment = async (req, res, next) => {
 
 		// First, get the appointment record to get its ID
 		const appointment = await model.findOneByApId(appid);
-		
+
 		if (!appointment || appointment.length === 0) {
 			return res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found!" });
 		}
@@ -428,7 +442,7 @@ exports.moreInfoAppointment = async (req, res, next) => {
 
 		// Use the actual ID from the found appointment for the update
 		const result = await model.update(appointment[0].id, data);
-		
+
 		if (result && !_.isEmpty(result)) {
 			res.status(StatusCodes.OK).send({ message: 'Request for more info has been made successfully!' });
 		} else {
@@ -451,7 +465,7 @@ exports.makeAppointmentDone = async (req, res, next) => {
 
 		// Assuming you have a method in your model to update the appointment status
 		const data = await model.updateAppointmentStatus(appid, 'done'); // Update the status to 'done'
-		
+
 		if (data) {
 			res.status(StatusCodes.OK).send({ message: "Appointment marked as done successfully" });
 		} else {
@@ -474,7 +488,7 @@ exports.makeAppointmentUndone = async (req, res, next) => {
 
 		// Assuming you have a method in your model to update the appointment status
 		const data = await model.updateAppointmentStatus(appid, last_status); // Revert the status to last_status
-		
+
 		if (data) {
 			res.status(StatusCodes.OK).send({ message: "Appointment status reverted successfully" });
 		} else {
