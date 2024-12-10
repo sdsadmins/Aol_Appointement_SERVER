@@ -52,48 +52,56 @@ const upload = multer({
 
 // });
 
-exports.register = async (req, res) => {
-    console.log("Middleware triggered");
-
-    // Use the multer middleware before proceeding with registration
-    upload(req, res, async (err) => {
-        if (err) {
-            console.log("Error during file upload:", err);
-            return res.status(500).json({
-                error: err,
-            });
+exports.register = async (req, res, next) => {
+    console.log('Register function triggered');  // Check if the function is triggered
+    console.log('Request body:', req.body);  // Log the incoming request body for debugging
+    try {
+        const userData = req.body;
+        // Validate user data against the DTO
+        // for (const key in validationDto) {
+        //     if (validationDto[key].required && !userData[key]) {
+        //         console.log(`${key} is required`);  // Log which key is missing
+        //         return res.status(400).send({ message: `${key} is required` });  // 400 Bad Request
+        //     }
+        //     // Check type of each field in userData
+        //     if (typeof userData[key] !== validationDto[key].type) {
+        //         console.log(`${key} must be of type ${validationDto[key].type}, received: ${typeof userData[key]}`);
+        //         return res.status(400).send({ message: `${key} must be of type ${validationDto[key].type}` });
+        //     }
+        // }
+        // Check if 'company' field exists and is a string, if required
+        // if (userData.company && typeof userData.company !== 'string') {
+        //     console.log(`company must be of type string, received: ${typeof userData.company}`);
+        //     return res.status(400).send({ message: 'company must be of type string' });
+        // }
+        // Log the incoming password to check if it's being received correctly
+        console.log("Password received:", userData.password);
+        // Hash the password
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+        // Log the hashed password for debugging
+        console.log("Hashed password:", hashedPassword);
+        const sd = { ...userData, password: hashedPassword };
+        console.log("Data saved:", sd);
+        // Insert the user data with the hashed password
+        const data = await model.insert(sd);
+        console.log("Data saved:", data);  // Log the data returned by insert
+        if (data) {
+            res.status(201).send({ message: 'User registered successfully', data: data });
+        } else {
+            res.status(400).send({ message: "Bad Request!" });
         }
-
-        console.log("Request Body:", req.body);
-        console.log("Request File:", req.file);
-
-        try {
-            const userData = req.body;
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
-
-            const userDataToSave = {
-                ...userData,
-                password: hashedPassword,
-                ...(req.file ? { photo: req.file.filename } : {})
-            };
-
-            const data = await model.insert(userDataToSave);
-
-            if (data) {
-                return res.status(201).send({
-                    message: 'User registered successfully',
-                    data: data
-                });
-            } else {
-                return res.status(400).send({ message: "Registration failed" });
-            }
-        } catch (error) {
-            console.error('Error in register:', error);
-            return res.status(500).send({ message: error.message });
-        }
-    });
+    } catch (e) {
+        console.log(`Error in register:`, e);  // Log the error for debugging
+        res.status(500).send({ message: e.message });  // 500 Internal Server Error
+    }
 };
+
+
+
+
+
+
 
 exports.getAll = async (req, res, next) => {
     try {
