@@ -60,7 +60,6 @@ exports.register = async (req, res) => {
         if (err) {
             console.log("Error during file upload:", err);
             return res.status(500).json({
-                // message: "Invalid file format. Only JPEG/JPG images are allowed",
                 error: err,
             });
         }
@@ -69,10 +68,6 @@ exports.register = async (req, res) => {
         console.log("Request File:", req.file);
 
         try {
-            if (!req.file) {
-                return res.status(400).send({ message: 'Photo is required' });
-            }
-
             const userData = req.body;
             const saltRounds = 10;
             const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
@@ -80,7 +75,7 @@ exports.register = async (req, res) => {
             const userDataToSave = {
                 ...userData,
                 password: hashedPassword,
-                photo: req.file.filename // Store the filename of the uploaded photo
+                ...(req.file ? { photo: req.file.filename } : {})
             };
 
             const data = await model.insert(userDataToSave);
