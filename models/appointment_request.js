@@ -19,7 +19,7 @@ exports.find = async (userId, offset, pageSize) => {
 
 
 exports.findOne = async (id) => {
-    const query = `SELECT t.id, t.ap_id, t.user_id, t.for_ap, t.full_name, t.email_id, t.country_code, t.mobile_no, t.ref_name, t.ref_country_code, t.ref_mobile_no, t.ref_email_id, t.ap_location, t.app_visit, t.city, t.state, t.country, t.designation, t.designationcomp, t.meet_purpose, t.meet_subject, t.no_people, t.no_people_partial, t.from_date, t.to_date, t.tags, t.attachment, t.attachment_url, t.picture, t.secretary_note, t.gurudev_remark, t.assign_to, t.assign_to_fill, t.assigned_by, t.ap_date, t.ap_time, t.star_rate, t.ap_status, t.check_in_status, t.darshan_line, t.backstage_status, t.deleted_app, t.entry_date_time, t.position_order, t.darshan_line_email, t.entry_date, t.mtype, t.zoom_link, t.access_token, t.venue, t.join_url, t.password, t.travelled, t.from_where, t.currently_doing, t.dop, t.selCountry, t.selState, t.selCity, t.toa, t.curr_loc, t.email_status, t.tcode, t.taughtCourses, t.more_info, t.admit_status, t.admitted_by, t.no_people_names, t.no_people_numbers, t.no_people_eleven_details, t.send_schedule, t.arrival_time, t.schedule_date, t.schedule_time, t.schedule_send_status, t.stay_avail FROM appointment_request as t WHERE t.id = ? `;
+    const query = `SELECT * FROM appointment_request WHERE id = ?`;
     return getRows(query, [id]);
 }
 
@@ -196,6 +196,11 @@ exports.getAppointmentCountByDate = async (userId, apDate) => {
     const query = `SELECT COUNT(*) as total FROM appointment_request WHERE user_id = ? AND DATE(ap_date) = ?`;
     const result = await getRows(query, [userId, apDate]);
     return result[0] ? result[0].total : 0; // Return the count or 0 if no results
+};
+
+exports.getAppointmentsByLocation = async (locationId) => {
+    const query = `SELECT * FROM appointment_request WHERE ap_location = ?`;
+    return getRows(query, [locationId]);
 };
 
 
