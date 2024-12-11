@@ -358,19 +358,20 @@ exports.getAppointmentsByDate = async (req, res, next) => {
 	}
 };
 
-exports.getAppointmentDetails = async (req, res, next) => {
+exports.getSingleAppointmentDetails = async (req, res, next) => {
 	try {
-		const apId = req.params.ap_id; // Extract ap_id from the route parameter
+		const { id } = req.params; // Extract id from the route parameter
 
-		// Update the query to search by ap_id instead of id
-		const data = await model.findOneByApId(apId); // Call the model method to get appointment details by ap_id
+		// Call the model method to get appointment details by ID
+		const data = await model.findOne(id);
+
 		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send({ message: "Appointment details retrieved successfully", data: data[0] }); // Send the appointment details with a success message
+			res.status(StatusCodes.OK).send(data[0]); // Send the first result
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ap_id." });
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
 		}
 	} catch (e) {
-		console.log(`Error in getAppointmentDetails`, e);
+		console.log(`Error in getSingleAppointmentDetails`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
@@ -666,6 +667,42 @@ exports.getRightNavCount = async (req, res, next) => {
 		res.status(StatusCodes.OK).send({ count });
 	} catch (e) {
 		console.log(`Error in getRightNavCount`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.getAppointmentsByLocation = async (req, res, next) => {
+	try {
+		const { location_id } = req.params; // Extract location_id from the route parameter
+
+		// Call the model method to get appointments by location
+		const data = await model.getAppointmentsByLocation(location_id);
+
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send(data);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for the specified location." });
+		}
+	} catch (e) {
+		console.log(`Error in getAppointmentsByLocation`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.getAppointmentById = async (req, res, next) => {
+	try {
+		const { id } = req.params; // Extract id from the route parameter
+
+		// Call the model method to get appointment details by ID
+		const data = await model.findOne(id);
+
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send(data[0]); // Send the first result
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+		}
+	} catch (e) {
+		console.log(`Error in getAppointmentById`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
