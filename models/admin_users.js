@@ -86,4 +86,15 @@ exports.updatePasswordByEmail = async (email, hashedPassword) => {
     return result; // Return the result of the update operation
 }
 
+exports.findOneAdminUser = async (userId) => {
+    const query = `SELECT * FROM admin_users WHERE id = ?`;
+    return getRows(query, [userId]);
+};
+
+exports.updateAdminUserPassword = async (email, hashedPassword) => {
+    const query = `UPDATE admin_users SET password = ? WHERE email_id = ?`;
+    const result = await updateRow(query, [hashedPassword, email]);
+    return result; // Return the result of the update operation
+};
+
 
