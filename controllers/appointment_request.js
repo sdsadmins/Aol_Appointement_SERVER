@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const emailService = require('../services/emailService');
 
+
 // Add multer storage configuration at the top of the file
 const storage = multer.diskStorage({
 	destination: function (req, file, cb) {
@@ -728,7 +729,7 @@ exports.sendMoreInfoEmail = async (req, res, next) => {
 				emailBody = `
 					Dear ${fullName},
 					
-					We hope this email finds you well. Regarding your appointment request (ID: ${appid}), 
+					We hope this email finds you well. Regarding your appointment request (ID: ${appointmentDetails.ap_id}), 
 					we need some additional information about your designation and contact details.
 					
 					Please provide:
@@ -784,26 +785,50 @@ exports.sendMoreInfoEmail = async (req, res, next) => {
 	}
 };
 
-exports.changeAppointmentStar = async (req, res, next) => {
+exports.getStarredAppointmentDetails = async (req, res, next) => {
 	try {
-		const { appid } = req.body; // Extract appid from the request body
-
-		// Ensure appid is provided
-		if (!appid) {
-			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
-		}
-
-		// Update the star_rate to 1
-		const data = await model.updateAppointmentStatus(appid, '1'); // Assuming '1' indicates starred
-
-		if (data) {
-			res.status(StatusCodes.OK).send({ message: "Appointment starred successfully" });
+		console.log('hhhhhhhhhhhhhhhhh');
+		
+		const data = await model.getStarredAppointments();
+		console.log('Data received in controller:', data);
+		console.log('Data type:', typeof data);
+		console.log('Is array?', Array.isArray(data));
+		console.log('Data length:', data ? data.length : 0);
+		
+		// Try both checks
+		const isEmptyLodash = _.isEmpty(data);
+		const isEmptyLength = !data || data.length === 0;
+		
+		console.log('isEmpty (lodash):', isEmptyLodash);
+		console.log('isEmpty (length check):', isEmptyLength);
+		
+		if (data && data.length > 0) {
+			console.log('Sending success response');
+			res.status(StatusCodes.OK).send({
+				message: "Starred appointments retrieved successfully",
+				totalCount: data.length,
+				data
+			});
 		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to star appointment" });
+			console.log('Sending not found response');
+			res.status(StatusCodes.NOT_FOUND).send({ 
+				message: "No starred appointments found",
+				debug: {
+					dataReceived: data,
+					dataType: typeof data,
+					isArray: Array.isArray(data),
+					dataLength: data ? data.length : 0,
+					isEmptyLodash,
+					isEmptyLength
+				}
+			});
 		}
 	} catch (e) {
-		console.log(`Error in changeAppointmentStar`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+		console.error('Error in getStarredAppointments controller:', e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
+			message: e.message,
+			stack: e.stack
+		});
 	}
 };
 

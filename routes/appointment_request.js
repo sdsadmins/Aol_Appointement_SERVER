@@ -6,12 +6,12 @@ const updateValidator = require("../middleware/updateValidator");
 const createDto = require('../dto/appointment_request.dto');
 const router = express.Router();
 
-router.get('/', checkAuth, controller.getAll);
-router.post('/', checkAuth, bodyValidator(createDto), controller.create);
-router.get('/:id', checkAuth, controller.getOne);
-router.put('/:id', checkAuth, updateValidator(createDto), controller.update);    
-router.patch('/:id', checkAuth, controller.update);
-router.delete('/:id', checkAuth, controller.remove);
+// router.get('/', checkAuth, controller.getAll);
+// router.post('/', checkAuth, bodyValidator(createDto), controller.create);
+// router.get('/:id', checkAuth, controller.getOne);
+// router.put('/:id', checkAuth, updateValidator(createDto), controller.update);    
+// router.patch('/:id', checkAuth, controller.update);
+// router.delete('/:id', checkAuth, controller.remove);
 router.post('/appointmentform/:user_id', checkAuth, controller.submitSelfAppointment);
 router.get('/search/:searchKey', checkAuth, controller.search);
 router.get('/usersData/:user_id', checkAuth, controller.getUserAppointments);
@@ -33,7 +33,9 @@ router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCo
 router.get('/appointmentsByLocation/:location_id', checkAuth, controller.getAppointmentsByLocation);
 router.get('/appointment/:id', checkAuth, controller.getAppointmentById);
 router.post('/send-more-info-email', checkAuth, controller.sendMoreInfoEmail);
-router.post('/change_appointment_star', checkAuth, controller.changeAppointmentStar);
+router.get('/get-starred-appointment-details', checkAuth, controller.getStarredAppointmentDetails);
+
+
 router.post('/filter_by_assigned_status', checkAuth, controller.filterAppointmentsByAssignedStatus);
 
 module.exports = router;
