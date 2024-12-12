@@ -575,8 +575,7 @@ exports.getTomorrowsAppointments = async (req, res, next) => {
 		tomorrow.setDate(today.getDate() + 1); // Increment the date by 1 to get tomorrow's date
 		const dateString = tomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
 
-		const allowedStatuses = ['Scheduled', 'TB R/S', 'Done', 'SB'];
-		const data = await model.getAppointmentsByDate(null, dateString, allowedStatuses); // Pass allowed statuses to the model method
+		const data = await model.getAppointmentsByDate(null, dateString); // Fetch data for tomorrow
 
 		console.log('Data received from model:', data); // Log the data
 
@@ -1058,6 +1057,36 @@ exports.markAppointmentAsDeleted = async (req, res, next) => {
 		}
 	} catch (e) {
 		console.log(`Error in markAppointmentAsDeleted`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.changeAppointmentStatus = async (req, res, next) => {
+	try {
+		const ap_id = req.params.ap_id; 
+		const { status } = req.body; 
+
+		if (!ap_id) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
+		}
+
+		const currentAppointment = await model.findOneByApId(ap_id);
+		if (!currentAppointment || currentAppointment.length === 0) {
+			return res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+		}
+
+		const currentStatus = currentAppointment[0].ap_status; 
+
+		const newStatus = currentStatus === "Scheduled" ? "Done" : "Scheduled";
+
+		const data = await model.updateAppointmentStatus(ap_id, newStatus); 
+		if (data) {
+			res.status(StatusCodes.OK).send({ message: `Appointment status updated to ${newStatus}`, data });
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "Failed to update appointment status" });
+		}
+	} catch (e) {
+		console.log(`Error in changeAppointmentStatus`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
