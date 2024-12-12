@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', checkAuth, controller.getAll);
 router.post('/', checkAuth, bodyValidator(createDto), controller.create);
 router.get('/:id', checkAuth, controller.getOne);
-router.put('/:id', checkAuth, updateValidator(createDto), controller.update);
+router.put('/:id', checkAuth, updateValidator(createDto), controller.update);    
 router.patch('/:id', checkAuth, controller.update);
 router.delete('/:id', checkAuth, controller.remove);
 router.post('/appointmentform/:user_id', checkAuth, controller.submitSelfAppointment);
@@ -32,5 +32,6 @@ router.get('/upcomingAppointmentsByDate/:date', checkAuth, controller.getUpcomin
 router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCount);
 router.get('/appointmentsByLocation/:location_id', checkAuth, controller.getAppointmentsByLocation);
 router.get('/appointment/:id', checkAuth, controller.getAppointmentById);
+router.post('/change_appointment_star', checkAuth, controller.changeAppointmentStar);
 
 module.exports = router;

@@ -707,6 +707,28 @@ exports.getAppointmentById = async (req, res, next) => {
 	}
 };
 
+exports.changeAppointmentStar = async (req, res, next) => {
+	try {
+		const { appid } = req.body; // Extract appid from the request body
+
+		// Ensure appid is provided
+		if (!appid) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
+		}
+
+		// Update the star_rate to 1
+		const data = await model.updateAppointmentStatus(appid, '1'); // Assuming '1' indicates starred
+
+		if (data) {
+			res.status(StatusCodes.OK).send({ message: "Appointment starred successfully" });
+		} else {
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to star appointment" });
+		}
+	} catch (e) {
+		console.log(`Error in changeAppointmentStar`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
 
 
 

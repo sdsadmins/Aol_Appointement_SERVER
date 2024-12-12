@@ -125,8 +125,8 @@ exports.updateCheckInStatus = async (appid, { status, secretary_note, gurudev_re
 };
 
 exports.updateAppointmentStatus = async (appid, status) => {
-    const query = `UPDATE appointment_request SET ap_status = ? WHERE ap_id = ?`;
-    const result = await updateRow(query, [status, appid]);
+    const query = `UPDATE appointment_request SET ap_status = ?, star_rate = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [status, '1', appid]);
     return result;
 };
 
