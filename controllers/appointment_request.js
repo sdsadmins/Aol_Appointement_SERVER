@@ -575,7 +575,12 @@ exports.getTomorrowsAppointments = async (req, res, next) => {
 		tomorrow.setDate(today.getDate() + 1); // Increment the date by 1 to get tomorrow's date
 		const dateString = tomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
 
-		const data = await model.getAppointmentsByDate(null, dateString); // Fetch data for tomorrow
+		const location = req.params.location; // Extract location from URL parameters
+		const userId = req.params.user_id; // Extract user ID from URL parameters
+
+		// Fetch data for tomorrow, including location and user ID condition
+		const allowedStatuses = ['Scheduled', 'TB R/S', 'Done', 'SB', 'GK']; // Define allowed statuses
+		const data = await model.getAppointmentsByDate(userId, dateString, allowedStatuses); // Pass user ID, date, and allowed statuses to the model
 
 		console.log('Data received from model:', data); // Log the data
 
