@@ -32,5 +32,6 @@ router.get('/upcomingAppointmentsByDate/:date', checkAuth, controller.getUpcomin
 router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCount);
 router.get('/appointmentsByLocation/:location_id', checkAuth, controller.getAppointmentsByLocation);
 router.get('/appointment/:id', checkAuth, controller.getAppointmentById);
+router.post('/send-more-info-email', checkAuth, controller.sendMoreInfoEmail);
 
 module.exports = router;
