@@ -203,4 +203,66 @@ exports.getAppointmentsByLocation = async (locationId) => {
     return getRows(query, [locationId]);
 };
 
+exports.filterAppointmentsByAssignedStatus = async (assignToFill, offset, pageSize) => {
+    console.log('Filtering appointments with:', { assignToFill, offset, pageSize });
+
+    let query = `SELECT * FROM appointment_request`;
+    let countQuery = `SELECT COUNT(*) as total FROM appointment_request`;
+    let whereClause = '';
+    let params = [];
+
+    // Handle different assignToFill scenarios
+    switch (assignToFill) {
+        case 'all':
+            // No additional filtering for 'all'
+            break;
+        case 'assigned':
+            whereClause = ` WHERE assign_to_fill IS NOT NULL AND assign_to_fill != ''`;
+            break;
+        case 'unassigned':
+            whereClause = ` WHERE (assign_to_fill IS NULL OR assign_to_fill = '')`;
+            break;
+        default:
+            // For specific assign_to_fill values
+            whereClause = ` WHERE assign_to_fill = ?`;
+            params.push(assignToFill);
+    }
+
+    // Add pagination
+    const limitClause = ` LIMIT ?, ?`;
+    params.push(offset, pageSize);
+
+    // Construct full queries
+    query += whereClause + limitClause;
+    countQuery += whereClause;
+
+    try {
+        // Execute count query
+        const countResult = await getRows(countQuery, 
+            assignToFill === 'all' ? [] : params.slice(0, -2)
+        ); 
+        const totalCount = countResult[0] ? countResult[0].total : 0;
+
+        // Execute data query
+        const data = await getRows(query, params);
+
+        return {
+            totalCount,  // Total number of records matching the filter
+            totalPages: Math.ceil(totalCount / pageSize),  // Total number of pages
+            currentPage: Math.floor(offset / pageSize) + 1,  // Current page number
+            pageSize,  // Number of records per page
+            data
+        };
+    } catch (error) {
+        console.error('Detailed Error filtering appointments:', error);
+        return {
+            totalCount: 0,
+            totalPages: 0,
+            currentPage: 1,
+            pageSize,
+            data: []
+        };
+    }
+};
+
 

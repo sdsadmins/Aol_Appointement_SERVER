@@ -34,5 +34,6 @@ router.get('/appointmentsByLocation/:location_id', checkAuth, controller.getAppo
 router.get('/appointment/:id', checkAuth, controller.getAppointmentById);
 router.post('/send-more-info-email', checkAuth, controller.sendMoreInfoEmail);
 router.post('/change_appointment_star', checkAuth, controller.changeAppointmentStar);
+router.post('/filter_by_assigned_status', checkAuth, controller.filterAppointmentsByAssignedStatus);
 
 module.exports = router;

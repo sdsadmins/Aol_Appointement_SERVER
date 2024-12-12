@@ -807,5 +807,65 @@ exports.changeAppointmentStar = async (req, res, next) => {
 	}
 };
 
+exports.filterAppointmentsByAssignedStatus = async (req, res, next) => {
+	try {
+		// Extract parameters from request body
+		const { assignToFill = 'all' } = req.body; 
+		const pageNo = req.body.pageNo ? parseInt(req.body.pageNo) : 1; 
+		const pageSize = req.body.pageSize ? parseInt(req.body.pageSize) : 10; 
+		const offset = (pageNo - 1) * pageSize;
+
+		console.log('Filtering Appointments Request:', { 
+			assignToFill, 
+			pageNo, 
+			pageSize, 
+			offset 
+		});
+
+		// Validate assignToFill parameter
+		const validAssignToFillValues = ['all', 'assigned', 'unassigned'];
+		
+		// If a specific value is passed that is not in the predefined list
+		if (!validAssignToFillValues.includes(assignToFill)) {
+			// Additional validation for specific values
+			if (!assignToFill) {
+				return res.status(StatusCodes.BAD_REQUEST).send({ 
+					message: "assignToFill value cannot be empty" 
+				});
+			}
+		}
+
+		// Call model method
+		const result = await model.filterAppointmentsByAssignedStatus(assignToFill, offset, pageSize);
+
+		// More detailed response handling
+		if (result.data && result.data.length > 0) {
+			res.status(StatusCodes.OK).send({
+				pageNo: pageNo,
+				pageSize: pageSize,	
+				totalCount: result.totalCount,
+				totalPages: result.totalPages,
+				currentPage: result.currentPage,
+				data: result.data
+			});
+		} else {
+			console.warn('No appointments found for filter:', assignToFill);
+			res.status(StatusCodes.NOT_FOUND).send({ 
+				message: `No appointments found for assignToFill: ${assignToFill}`,
+				totalCount: 0,
+				totalPages: 0,
+				currentPage: 1,
+				data: []
+			});
+		}
+	} catch (e) {
+		console.error(`Detailed Error in filterAppointmentsByAssignedStatus`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
+			message: e.message,
+			stack: e.stack 
+		});
+	}
+};
+
 
 
