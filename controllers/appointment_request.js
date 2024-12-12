@@ -40,6 +40,23 @@ const upload = multer({
 	}
 }).fields([{ name: 'attachment', maxCount: 1 }, { name: 'picture', maxCount: 1 }]);
 
+// Add multer storage configuration at the top of the file
+const uploadAdmin = multer({
+	storage: storage,
+	fileFilter: (req, file, cb) => {
+		const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx']; // Add allowed file types
+		const extension = path.extname(file.originalname);
+		if (!allowedExtensions.includes(extension)) {
+			cb(new Error("Only JPG, JPEG, PNG, PDF, DOC, and DOCX files are allowed"));
+		} else {
+			cb(null, true);
+		}
+	},
+	limits: {
+		fileSize: 5 * 1024 * 1024 // 5 MB limit for file size
+	}
+}).single("photo"); // Ensure this matches the field name in your form data
+
 exports.getAll = async (req, res, next) => {
 	try {
 		const pageNo = await getPageNo(req);
@@ -920,92 +937,102 @@ exports.filterAppointmentsByAssignedStatus = async (req, res, next) => {
 };
 
 exports.addNewAppointmentAdmin = async (req, res, next) => {
-	try {
-		// Generate a random 6-digit appointment ID
-		const appointmentId = Math.floor(100000 + Math.random() * 900000);
-		
-		// Convert 12-hour time format to 24-hour
-		const timeComponents = req.body.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
-		let hours = parseInt(timeComponents[1]);
-		const minutes = timeComponents[2];
-		const period = timeComponents[3].toUpperCase();
-		
-		if (period === 'PM' && hours < 12) hours += 12;
-		if (period === 'AM' && hours === 12) hours = 0;
-		
-		const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
-
-		// Prepare appointment data
-		const appointmentData = {
-			ap_id: appointmentId,
-			full_name: req.body.name,
-			designation: req.body.designation,
-			ref_name: req.body.referenceName,
-			no_people: req.body.noOfPeople,
-			mobile_no: req.body.mobileNo,
-			email_id: req.body.email,
-			ref_mobile_no: req.body.refPhone,
-			ref_email_id: req.body.refEmail,
-			venue: req.body.venue,
-			meet_purpose: req.body.purpose,
-			secretary_note: req.body.remarks || '',
-			ap_date: req.body.date,
-			ap_time: formattedTime,
-			picture: req.body.photo || '',
-			ap_status: 'pending',
-			email_status: req.body.dontSendEmailSms ? '0' : '1',
-			entry_date: new Date().toISOString().split('T')[0],
-			entry_date_time: new Date().toISOString(),
-			
-			deleted_app: '0',
-			more_info: '0',
-			star_rate: '0',
-			check_in_status: 'pending',
-			darshan_line: '0',
-			
-			backstage_status: '0',
-			position_order: '0',
-			darshan_line_email: '0',
-			for_ap: 'other',
-			country_code: '',
-			state: 0,
-			meet_subject: req.body.purpose,
-			mtype: req.body.tbsReq ? 'TBS' : 'Regular'
-		};
-
-		// Insert appointment into database
-		const data = await model.insert(appointmentData);
-		
-		if (data) {
-			// Send email notification if enabled
-			if (!req.body.dontSendEmailSms) {
-				try {
-					await emailService.sendMailer(
-						appointmentData.email_id,
-						'Appointment Request Confirmation',
-						`Dear ${appointmentData.full_name},\n\nYour appointment request has been received.\nAppointment ID: ${appointmentData.ap_id}\nDate: ${appointmentData.ap_date}\nTime: ${req.body.time}\n\nBest regards,\nAppointment Team`
-					);
-				} catch (emailError) {
-					console.log('Error sending email:', emailError);
-					// Continue even if email fails
-				}
-			}
-
-			res.status(StatusCodes.CREATED).send({
-				message: 'Appointment created successfully',
-				data: data
-			});
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({
-				message: "Failed to create appointment"
+	uploadAdmin(req, res, async (err) => { // Use multer middleware
+		if (err) {
+			console.log("Error during file upload:", err);
+			return res.status(400).send({
+				message: err.message
 			});
 		}
-	} catch (e) {
-		console.log(`Error in addNewAppointmentAdmin`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
-			message: e.message
-		});
-	}
+
+		try {
+			// Generate a random 6-digit appointment ID
+			const appointmentId = Math.floor(100000 + Math.random() * 900000);
+			
+			// Convert 12-hour time format to 24-hour
+			const timeComponents = req.body.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+			let hours = parseInt(timeComponents[1]);
+			const minutes = timeComponents[2];
+			const period = timeComponents[3].toUpperCase();
+			
+			if (period === 'PM' && hours < 12) hours += 12;
+			if (period === 'AM' && hours === 12) hours = 0;
+			
+			const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
+
+			// Prepare appointment data
+			const appointmentData = {
+				ap_id: appointmentId,
+				full_name: req.body.name,
+				designation: req.body.designation,
+				ref_name: req.body.referenceName,
+				no_people: req.body.noOfPeople,
+				mobile_no: req.body.mobileNo,
+				email_id: req.body.email,
+				ref_mobile_no: req.body.refPhone,
+				ref_email_id: req.body.refEmail,
+				venue: req.body.venue,
+				meet_purpose: req.body.purpose,
+				secretary_note: req.body.remarks || '',
+				ap_date: req.body.date,
+				ap_time: formattedTime,
+				picture: req.body.photo || '',
+				ap_status: 'pending',
+				email_status: req.body.dontSendEmailSms ? '0' : '1',
+				entry_date: new Date().toISOString().split('T')[0],
+				entry_date_time: new Date().toISOString(),
+				
+				deleted_app: '0',
+				more_info: '0',
+				star_rate: '0',
+				check_in_status: 'pending',
+				darshan_line: '0',
+				
+				backstage_status: '0',
+				position_order: '0',
+				darshan_line_email: '0',
+				for_ap: 'other',
+				country_code: '',
+				state: 0,
+				meet_subject: req.body.purpose,
+				mtype: req.body.tbsReq ? 'TBS' : 'Regular',
+				attachment: req.file ? req.file.filename : '', // Store the filename
+			};
+
+			// Insert appointment into database
+			const data = await model.insert(appointmentData);
+			
+			if (data) {
+				// Send email notification if enabled
+				if (!req.body.dontSendEmailSms) {
+					try {
+						await emailService.sendMailer(
+							appointmentData.email_id,
+							'Appointment Request Confirmation',
+							`Dear ${appointmentData.full_name},\n\nYour appointment request has been received.\nAppointment ID: ${appointmentData.ap_id}\nDate: ${appointmentData.ap_date}\nTime: ${req.body.time}\n\nBest regards,\nAppointment Team`
+						);
+					} catch (emailError) {
+						console.log('Error sending email:', emailError);
+						// Continue even if email fails
+					}
+				}
+
+				res.status(StatusCodes.CREATED).send({
+					message: 'Appointment created successfully',
+					data: data
+				});
+			} else {
+				res.status(StatusCodes.BAD_REQUEST).send({
+					message: "Failed to create appointment"
+				});
+			}
+		} catch (e) {
+			console.log(`Error in addNewAppointmentAdmin`, e);
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+				message: e.message
+			});
+		}
+	});
 };
 
 exports.markAppointmentAsDeleted = async (req, res, next) => {
