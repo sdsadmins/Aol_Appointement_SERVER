@@ -203,4 +203,20 @@ exports.getAppointmentsByLocation = async (locationId) => {
     return getRows(query, [locationId]);
 };
 
+exports.getStarredAppointments = async () => {
+    try {
+        const query = `SELECT * FROM appointment_request WHERE star_rate = '1'`;
+        console.log('Executing query:', query);
+        
+        const results = await getRows(query);
+        console.log('Query results:', results);
+        
+        return results;
+    } catch (error) {
+        console.error('Database error:', error);
+        throw error;
+    }
+};
+
+
 
