@@ -663,8 +663,8 @@ exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 		// Validate date format
 		const inputDate = new Date(dateString);
 		if (isNaN(inputDate.getTime())) {
-			return res.status(StatusCodes.BAD_REQUEST).send({ 
-				message: "Invalid date format. Please use YYYY-MM-DD format." 
+			return res.status(StatusCodes.BAD_REQUEST).send({
+				message: "Invalid date format. Please use YYYY-MM-DD format."
 			});
 		}
 
@@ -688,7 +688,7 @@ exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 				dates: data.map(item => item.appointment_date)
 			});
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ 
+			res.status(StatusCodes.NOT_FOUND).send({
 				message: "No upcoming appointment dates found.",
 				totalCount: 0,
 				data: []
@@ -696,8 +696,8 @@ exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 		}
 	} catch (e) {
 		console.error(`Error in getUpcomingAppointmentsByDate`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
-			message: e.message 
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+			message: e.message
 		});
 	}
 };
@@ -758,8 +758,8 @@ exports.sendMoreInfoEmail = async (req, res, next) => {
 		const { appid, radioreason, email, fullName } = req.body;
 
 		if (!appid || !email || !fullName) {
-			return res.status(StatusCodes.BAD_REQUEST).send({ 
-				message: "Please provide appointment ID, email and full name!" 
+			return res.status(StatusCodes.BAD_REQUEST).send({
+				message: "Please provide appointment ID, email and full name!"
 			});
 		}
 
@@ -807,8 +807,8 @@ exports.sendMoreInfoEmail = async (req, res, next) => {
 				break;
 
 			default:
-				return res.status(StatusCodes.BAD_REQUEST).send({ 
-					message: "Invalid reason selected" 
+				return res.status(StatusCodes.BAD_REQUEST).send({
+					message: "Invalid reason selected"
 				});
 		}
 
@@ -819,8 +819,8 @@ exports.sendMoreInfoEmail = async (req, res, next) => {
 			emailBody
 		);
 
-		res.status(StatusCodes.OK).send({ 
-			message: 'More information request email sent successfully!' 
+		res.status(StatusCodes.OK).send({
+			message: 'More information request email sent successfully!'
 		});
 
 	} catch (e) {
@@ -832,20 +832,20 @@ exports.sendMoreInfoEmail = async (req, res, next) => {
 exports.getStarredAppointmentDetails = async (req, res, next) => {
 	try {
 		console.log('hhhhhhhhhhhhhhhhh');
-		
+
 		const data = await model.getStarredAppointments();
 		console.log('Data received in controller:', data);
 		console.log('Data type:', typeof data);
 		console.log('Is array?', Array.isArray(data));
 		console.log('Data length:', data ? data.length : 0);
-		
+
 		// Try both checks
 		const isEmptyLodash = _.isEmpty(data);
 		const isEmptyLength = !data || data.length === 0;
-		
+
 		console.log('isEmpty (lodash):', isEmptyLodash);
 		console.log('isEmpty (length check):', isEmptyLength);
-		
+
 		if (data && data.length > 0) {
 			console.log('Sending success response');
 			res.status(StatusCodes.OK).send({
@@ -855,7 +855,7 @@ exports.getStarredAppointmentDetails = async (req, res, next) => {
 			});
 		} else {
 			console.log('Sending not found response');
-			res.status(StatusCodes.NOT_FOUND).send({ 
+			res.status(StatusCodes.NOT_FOUND).send({
 				message: "No starred appointments found",
 				debug: {
 					dataReceived: data,
@@ -869,7 +869,7 @@ exports.getStarredAppointmentDetails = async (req, res, next) => {
 		}
 	} catch (e) {
 		console.error('Error in getStarredAppointments controller:', e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
 			message: e.message,
 			stack: e.stack
 		});
@@ -879,27 +879,27 @@ exports.getStarredAppointmentDetails = async (req, res, next) => {
 exports.filterAppointmentsByAssignedStatus = async (req, res, next) => {
 	try {
 		// Extract parameters from request body
-		const { assignToFill = 'all' } = req.body; 
-		const pageNo = req.body.pageNo ? parseInt(req.body.pageNo) : 1; 
-		const pageSize = req.body.pageSize ? parseInt(req.body.pageSize) : 10; 
+		const { assignToFill = 'all' } = req.body;
+		const pageNo = req.body.pageNo ? parseInt(req.body.pageNo) : 1;
+		const pageSize = req.body.pageSize ? parseInt(req.body.pageSize) : 10;
 		const offset = (pageNo - 1) * pageSize;
 
-		console.log('Filtering Appointments Request:', { 
-			assignToFill, 
-			pageNo, 
-			pageSize, 
-			offset 
+		console.log('Filtering Appointments Request:', {
+			assignToFill,
+			pageNo,
+			pageSize,
+			offset
 		});
 
 		// Validate assignToFill parameter
 		const validAssignToFillValues = ['all', 'assigned', 'unassigned'];
-		
+
 		// If a specific value is passed that is not in the predefined list
 		if (!validAssignToFillValues.includes(assignToFill)) {
 			// Additional validation for specific values
 			if (!assignToFill) {
-				return res.status(StatusCodes.BAD_REQUEST).send({ 
-					message: "assignToFill value cannot be empty" 
+				return res.status(StatusCodes.BAD_REQUEST).send({
+					message: "assignToFill value cannot be empty"
 				});
 			}
 		}
@@ -911,7 +911,7 @@ exports.filterAppointmentsByAssignedStatus = async (req, res, next) => {
 		if (result.data && result.data.length > 0) {
 			res.status(StatusCodes.OK).send({
 				pageNo: pageNo,
-				pageSize: pageSize,	
+				pageSize: pageSize,
 				totalCount: result.totalCount,
 				totalPages: result.totalPages,
 				currentPage: result.currentPage,
@@ -919,7 +919,7 @@ exports.filterAppointmentsByAssignedStatus = async (req, res, next) => {
 			});
 		} else {
 			console.warn('No appointments found for filter:', assignToFill);
-			res.status(StatusCodes.NOT_FOUND).send({ 
+			res.status(StatusCodes.NOT_FOUND).send({
 				message: `No appointments found for assignToFill: ${assignToFill}`,
 				totalCount: 0,
 				totalPages: 0,
@@ -929,9 +929,9 @@ exports.filterAppointmentsByAssignedStatus = async (req, res, next) => {
 		}
 	} catch (e) {
 		console.error(`Detailed Error in filterAppointmentsByAssignedStatus`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
 			message: e.message,
-			stack: e.stack 
+			stack: e.stack
 		});
 	}
 };
@@ -948,16 +948,16 @@ exports.addNewAppointmentAdmin = async (req, res, next) => {
 		try {
 			// Generate a random 6-digit appointment ID
 			const appointmentId = Math.floor(100000 + Math.random() * 900000);
-			
+
 			// Convert 12-hour time format to 24-hour
 			const timeComponents = req.body.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
 			let hours = parseInt(timeComponents[1]);
 			const minutes = timeComponents[2];
 			const period = timeComponents[3].toUpperCase();
-			
+
 			if (period === 'PM' && hours < 12) hours += 12;
 			if (period === 'AM' && hours === 12) hours = 0;
-			
+
 			const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
 
 			// Prepare appointment data
@@ -981,13 +981,13 @@ exports.addNewAppointmentAdmin = async (req, res, next) => {
 				email_status: req.body.dontSendEmailSms ? '0' : '1',
 				entry_date: new Date().toISOString().split('T')[0],
 				entry_date_time: new Date().toISOString(),
-				
+
 				deleted_app: '0',
 				more_info: '0',
 				star_rate: '0',
 				check_in_status: 'pending',
 				darshan_line: '0',
-				
+
 				backstage_status: '0',
 				position_order: '0',
 				darshan_line_email: '0',
@@ -1001,7 +1001,7 @@ exports.addNewAppointmentAdmin = async (req, res, next) => {
 
 			// Insert appointment into database
 			const data = await model.insert(appointmentData);
-			
+
 			if (data) {
 				// Send email notification if enabled
 				if (!req.body.dontSendEmailSms) {
@@ -1048,7 +1048,7 @@ exports.markAppointmentAsDeleted = async (req, res, next) => {
 		const data = await model.markAppointmentAsDeleted(appid);
 
 		if (data) {
-			res.status(StatusCodes.OK).send({ 
+			res.status(StatusCodes.OK).send({
 				message: "Appointment marked as deleted successfully",
 				data: data[0] // Send the updated appointment details
 			});
@@ -1063,8 +1063,8 @@ exports.markAppointmentAsDeleted = async (req, res, next) => {
 
 exports.changeAppointmentStatus = async (req, res, next) => {
 	try {
-		const ap_id = req.params.ap_id; 
-		const { status } = req.body; 
+		const ap_id = req.params.ap_id;
+		const { status } = req.body;
 
 		if (!ap_id) {
 			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
@@ -1075,11 +1075,11 @@ exports.changeAppointmentStatus = async (req, res, next) => {
 			return res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
 		}
 
-		const currentStatus = currentAppointment[0].ap_status; 
+		const currentStatus = currentAppointment[0].ap_status;
 
 		const newStatus = currentStatus === "Scheduled" ? "Done" : "Scheduled";
 
-		const data = await model.updateAppointmentStatus(ap_id, newStatus); 
+		const data = await model.updateAppointmentStatus(ap_id, newStatus);
 		if (data) {
 			res.status(StatusCodes.OK).send({ message: `Appointment status updated to ${newStatus}`, data });
 		} else {

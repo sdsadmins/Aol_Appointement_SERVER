@@ -204,7 +204,7 @@ exports.classifyAppointments = async () => {
 exports.getUpcomingAppointmentsByDate = async (dateString) => {
     // Validate the input date
     const inputDate = new Date(dateString);
-    
+
     if (isNaN(inputDate.getTime())) {
         throw new Error('Invalid date format');
     }
@@ -218,7 +218,7 @@ exports.getUpcomingAppointmentsByDate = async (dateString) => {
             AND DATE(ap_date) != '0000-00-00'
         ORDER BY appointment_date ASC
     `;
-    
+
     return getRows(query, [dateString]);
 };
 
@@ -237,10 +237,10 @@ exports.getStarredAppointments = async () => {
     try {
         const query = `SELECT * FROM appointment_request WHERE star_rate = '1'`;
         console.log('Executing query:', query);
-        
+
         const results = await getRows(query);
         console.log('Query results:', results);
-        
+
         return results;
     } catch (error) {
         console.error('Database error:', error);
@@ -284,9 +284,9 @@ exports.filterAppointmentsByAssignedStatus = async (assignToFill, offset, pageSi
 
     try {
         // Execute count query
-        const countResult = await getRows(countQuery, 
+        const countResult = await getRows(countQuery,
             assignToFill === 'all' ? [] : params.slice(0, -2)
-        ); 
+        );
         const totalCount = countResult[0] ? countResult[0].total : 0;
 
         // Execute data query

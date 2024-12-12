@@ -34,8 +34,6 @@ router.get('/appointmentsByLocation/:location_id', checkAuth, controller.getAppo
 router.get('/appointment/:id', checkAuth, controller.getAppointmentById);
 router.post('/send-more-info-email', checkAuth, controller.sendMoreInfoEmail);
 router.get('/get-starred-appointment-details', checkAuth, controller.getStarredAppointmentDetails);
-
-
 router.post('/filter_by_assigned_status', checkAuth, controller.filterAppointmentsByAssignedStatus);
 router.post('/mark_as_deleted', checkAuth, controller.markAppointmentAsDeleted);
 router.post('/addnewappointment_admin', checkAuth, controller.addNewAppointmentAdmin);
