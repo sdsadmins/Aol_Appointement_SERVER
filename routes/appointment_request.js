@@ -37,5 +37,6 @@ router.get('/get-starred-appointment-details', checkAuth, controller.getStarredA
 
 
 router.post('/filter_by_assigned_status', checkAuth, controller.filterAppointmentsByAssignedStatus);
+router.post('/addnewappointment_admin', checkAuth, controller.addNewAppointmentAdmin);
 
 module.exports = router;
