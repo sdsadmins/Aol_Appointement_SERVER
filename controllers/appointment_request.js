@@ -5,6 +5,7 @@ const { getPageNo, getPageSize } = require('../utils/helper');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const emailService = require('../services/emailService');
 
 // Add multer storage configuration at the top of the file
 const storage = multer.diskStorage({
@@ -703,6 +704,82 @@ exports.getAppointmentById = async (req, res, next) => {
 		}
 	} catch (e) {
 		console.log(`Error in getAppointmentById`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.sendMoreInfoEmail = async (req, res, next) => {
+	try {
+		const { appid, radioreason, email, fullName } = req.body;
+
+		if (!appid || !email || !fullName) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ 
+				message: "Please provide appointment ID, email and full name!" 
+			});
+		}
+
+		// Prepare email content based on the selected reason only
+		let emailSubject = 'Additional Information Required for Your Appointment Request';
+		let emailBody;
+
+		// Set email body based on the selected radio reason
+		switch (radioreason) {
+			case '1':
+				emailBody = `
+					Dear ${fullName},
+					
+					We hope this email finds you well. Regarding your appointment request (ID: ${appid}), 
+					we need some additional information about your designation and contact details.
+					
+					Please provide:
+					- Complete designation details
+					- Updated contact information
+					
+					You can update this information by logging into your account and editing your appointment request.
+					
+					Best regards,
+					Office of Gurudev Sri Sri Ravi Shankar
+				`;
+				break;
+
+			case '2':
+				emailBody = `
+					Dear ${fullName},
+					
+					We hope this email finds you well. Regarding your appointment request (ID: ${appid}), 
+					we need more clarity about the purpose of your appointment.
+					
+					Please provide:
+					- Detailed purpose of the meeting
+					- Expected outcomes
+					- Any specific topics you would like to discuss
+					
+					You can update this information by logging into your account and editing your appointment request.
+					
+					Best regards,
+					Office of Gurudev Sri Sri Ravi Shankar
+				`;
+				break;
+
+			default:
+				return res.status(StatusCodes.BAD_REQUEST).send({ 
+					message: "Invalid reason selected" 
+				});
+		}
+
+		// Send email with the selected message
+		await emailService.sendMailer(
+			email,  // Using email from request body
+			emailSubject,
+			emailBody
+		);
+
+		res.status(StatusCodes.OK).send({ 
+			message: 'More information request email sent successfully!' 
+		});
+
+	} catch (e) {
+		console.log(`Error in sendMoreInfoEmail`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
