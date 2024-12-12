@@ -575,7 +575,8 @@ exports.getTomorrowsAppointments = async (req, res, next) => {
 		tomorrow.setDate(today.getDate() + 1); // Increment the date by 1 to get tomorrow's date
 		const dateString = tomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
 
-		const data = await model.getAppointmentsByDate(null, dateString); // Fetch data for tomorrow
+		const allowedStatuses = ['Scheduled', 'TB R/S', 'Done', 'SB'];
+		const data = await model.getAppointmentsByDate(null, dateString, allowedStatuses); // Pass allowed statuses to the model method
 
 		console.log('Data received from model:', data); // Log the data
 
