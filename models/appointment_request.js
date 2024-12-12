@@ -96,14 +96,23 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (userId, dateString) => {
-    let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ?`;
+exports.getAppointmentsByDate = async (userId, dateString, allowedStatuses = null) => {
+    let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND deleted_app = '0'`;
     const params = [dateString];
 
     if (userId) {
         query += ` AND user_id = ?`;
         params.push(userId);
     }
+
+    // Add status filtering if allowedStatuses is provided
+    if (allowedStatuses && allowedStatuses.length > 0) {
+        query += ` AND ap_status IN (?)`;
+        params.push(allowedStatuses);
+    }
+
+    // Add order by clause
+    query += ` ORDER BY ap_time ASC`;
 
     console.log('Executing query:', query, 'with params:', params);
 

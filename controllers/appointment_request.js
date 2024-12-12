@@ -512,7 +512,8 @@ exports.getTodayAppointments = async (req, res, next) => {
 		const today = new Date();
 		const dateString = today.toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
 
-		const data = await model.getAppointmentsByDate(null, dateString); // Fetch data
+		const allowedStatuses = ['Scheduled', 'TB R/S', 'Done', 'SB', 'GK'];
+		const data = await model.getAppointmentsByDate(null, dateString, allowedStatuses); // Pass allowed statuses to the model method
 
 		console.log('Data received from model:', data); // Log the data
 
