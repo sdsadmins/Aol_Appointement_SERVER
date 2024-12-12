@@ -641,20 +641,46 @@ exports.deleteAppointment = async (req, res, next) => {
 exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 	try {
 		const dateString = req.params.date; // Extract date from the route parameter
-		const data = await model.getUpcomingAppointmentsByDate(dateString); // Call the model method
+
+		// Validate date format
+		const inputDate = new Date(dateString);
+		if (isNaN(inputDate.getTime())) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ 
+				message: "Invalid date format. Please use YYYY-MM-DD format." 
+			});
+		}
+
+		// Get today's date for comparison
+		const today = new Date();
+		today.setHours(0, 0, 0, 0); // Reset time to start of day
+
+		// Check if the input date is in the past
+		// if (inputDate < today) {
+		// 	return res.status(StatusCodes.BAD_REQUEST).send({ 
+		// 		message: "Date must be today or in the future." 
+		// 	});
+		// }
+
+		const data = await model.getUpcomingAppointmentsByDate(dateString);
 
 		if (data && data.length > 0) {
 			res.status(StatusCodes.OK).send({
-				message: "Upcoming appointments retrieved successfully",
-				totalCount: data.length, // Include total count in the response
-				data
+				message: "Upcoming appointment dates retrieved successfully",
+				totalCount: data.length,
+				dates: data.map(item => item.appointment_date)
 			});
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No upcoming appointments found." });
+			res.status(StatusCodes.NOT_FOUND).send({ 
+				message: "No upcoming appointment dates found.",
+				totalCount: 0,
+				data: []
+			});
 		}
 	} catch (e) {
-		console.log(`Error in getUpcomingAppointmentsByDate`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+		console.error(`Error in getUpcomingAppointmentsByDate`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
+			message: e.message 
+		});
 	}
 };
 
@@ -889,6 +915,32 @@ exports.filterAppointmentsByAssignedStatus = async (req, res, next) => {
 			message: e.message,
 			stack: e.stack 
 		});
+	}
+};
+
+exports.markAppointmentAsDeleted = async (req, res, next) => {
+	try {
+		const { appid } = req.body; // Extract appid from the request body
+
+		// Ensure appid is provided
+		if (!appid) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
+		}
+
+		// Call the model method to mark the appointment as deleted
+		const data = await model.markAppointmentAsDeleted(appid);
+
+		if (data) {
+			res.status(StatusCodes.OK).send({ 
+				message: "Appointment marked as deleted successfully",
+				data: data[0] // Send the updated appointment details
+			});
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+		}
+	} catch (e) {
+		console.log(`Error in markAppointmentAsDeleted`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 

@@ -142,6 +142,11 @@ exports.updateDeletedApp = async (appid, status) => {
     return result;
 };
 
+exports.markAppointmentAsDeleted = async (appid) => {
+    const query = `UPDATE appointment_request SET deleted_app = '1' WHERE ap_id = ?`;
+    const result = await updateRow(query, [appid]);
+    return result ? this.findOneByApId(appid) : null;
+};
 
 // Fetch and classify appointments
 exports.classifyAppointments = async () => {
@@ -188,8 +193,24 @@ exports.classifyAppointments = async () => {
 // };
 
 exports.getUpcomingAppointmentsByDate = async (dateString) => {
-    const query = `SELECT * FROM appointment_request WHERE ap_date > NOW()`; // Fetch appointments after the current date
-    return getRows(query);
+    // Validate the input date
+    const inputDate = new Date(dateString);
+    
+    if (isNaN(inputDate.getTime())) {
+        throw new Error('Invalid date format');
+    }
+
+    // Use parameterized query to prevent SQL injection
+    const query = `
+        SELECT DISTINCT DATE(ap_date) as appointment_date 
+        FROM appointment_request 
+        WHERE 
+            DATE(ap_date) >= ? 
+            AND DATE(ap_date) != '0000-00-00'
+        ORDER BY appointment_date ASC
+    `;
+    
+    return getRows(query, [dateString]);
 };
 
 exports.getAppointmentCountByDate = async (userId, apDate) => {
