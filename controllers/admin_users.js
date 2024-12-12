@@ -213,3 +213,40 @@ exports.adminLogin = async (req, res, next) => {
     }
 };
 
+exports.adminUserChangePassword = async (req, res, next) => {
+    const userId = req.params.user_id; // Get user ID from request parameters
+    const { old_password, new_password, confirm_password } = req.body; // Get passwords from request body
+
+    // Validate request parameters
+    if (!old_password || !new_password || !confirm_password) {
+        return res.status(400).send({ message: 'All fields are required' });
+    }
+
+    if (new_password !== confirm_password) {
+        return res.status(400).send({ message: 'New password and confirm password do not match' });
+    }
+
+    try {
+        const user = await model.findOneAdminUser(userId); // Fetch user from admin_users table
+        if (!user || !user[0]) {
+            return res.status(404).send({ message: 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(old_password, user[0].password); // Compare old password
+        if (!isMatch) {
+            return res.status(401).send({ message: 'Old password is incorrect' });
+        }
+
+        const hashedPassword = await bcrypt.hash(new_password, 10); // Hash the new password
+        const result = await model.updateAdminUserPassword(user[0].email_id, hashedPassword); // Update password in admin_users table
+        if (result) {
+            return res.status(200).send({ message: 'Password updated successfully' });
+        } else {
+            return res.status(500).send({ message: 'Failed to update password' });
+        }
+    } catch (error) {
+        console.error('Error in adminUserChangePassword:', error);
+        return res.status(500).send({ message: 'Internal server error' });
+    }
+};
+
