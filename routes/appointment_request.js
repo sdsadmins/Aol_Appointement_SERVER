@@ -38,5 +38,8 @@ router.post('/filter_by_assigned_status', checkAuth, controller.filterAppointmen
 router.post('/mark_as_deleted', checkAuth, controller.markAppointmentAsDeleted);
 router.post('/addnewappointment_admin', checkAuth, controller.addNewAppointmentAdmin);
 router.post('/changeAppointmentStatus/:ap_id', checkAuth, controller.changeAppointmentStatus);
+router.post('/doneAppointments', checkAuth, controller.getDoneAppointments);
+router.get('/deletedAppointments', checkAuth, controller.getDeletedAppointments);
+router.post('/mark_multiple_as_deleted', checkAuth, controller.markMultipleAsDeleted);
 
 module.exports = router;

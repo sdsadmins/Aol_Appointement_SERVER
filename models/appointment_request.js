@@ -311,4 +311,26 @@ exports.filterAppointmentsByAssignedStatus = async (assignToFill, offset, pageSi
     }
 };
 
+exports.getDoneAppointments = async (offset, pageSize) => {
+    const query = `SELECT * FROM appointment_request WHERE ap_status = 'Done' LIMIT ?, ?`;
+    const countQuery = `SELECT COUNT(*) as total FROM appointment_request WHERE ap_status = 'Done'`; // Count query for Done appointments
+    const countResult = await getRows(countQuery); // Execute count query
+    const data = await getRows(query, [offset, pageSize]); // Execute data query
+    return {
+        totalCount: countResult[0] ? countResult[0].total : 0, // Return total count
+        data // Return the appointment data
+    };
+};
+
+exports.getDeletedAppointments = async (offset, pageSize) => {
+    const query = `SELECT * FROM appointment_request WHERE deleted_app = '1' LIMIT ?, ?`;
+    return getRows(query, [offset, pageSize]); // Pass offset and pageSize as parameters
+};
+
+exports.countDeletedAppointments = async () => {
+    const query = `SELECT COUNT(*) as total FROM appointment_request WHERE deleted_app = '1'`;
+    const result = await getRows(query);
+    return result[0] ? result[0].total : 0; // Return total count or 0 if no results
+};
+
 

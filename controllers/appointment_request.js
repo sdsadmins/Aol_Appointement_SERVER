@@ -575,14 +575,15 @@ exports.getTomorrowsAppointments = async (req, res, next) => {
 		tomorrow.setDate(today.getDate() + 1); // Increment the date by 1 to get tomorrow's date
 		const dateString = tomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
 
+		console.log('Fetching appointments for date:', dateString); // Log the date being fetched
+
 		const location = req.params.location; // Extract location from URL parameters
 		const userId = req.params.user_id; // Extract user ID from URL parameters
 
-		// Fetch data for tomorrow, including location and user ID condition
+		console.log('Fetching appointments for date:', dateString, 'for user:', userId, 'at location:', location); // Debugging line
+
 		const allowedStatuses = ['Scheduled', 'TB R/S', 'Done', 'SB', 'GK']; // Define allowed statuses
 		const data = await model.getAppointmentsByDate(userId, dateString, allowedStatuses); // Pass user ID, date, and allowed statuses to the model
-
-		console.log('Data received from model:', data); // Log the data
 
 		if (data && data.length > 0) {
 			res.status(StatusCodes.OK).send(data);
@@ -1096,5 +1097,63 @@ exports.changeAppointmentStatus = async (req, res, next) => {
 	}
 };
 
+exports.getDoneAppointments = async (req, res, next) => {
+	try {
+		const pageNo = parseInt(req.body.pageNo) || 1;
+		const pageSize = parseInt(req.body.pageSize) || 10;
+		const offset = (pageNo - 1) * pageSize; 
 
+		const { totalCount, data } = await model.getDoneAppointments(offset, pageSize);
+		res.status(StatusCodes.OK).send({
+			pageNo,
+			pageSize,
+			totalCount,
+			data
+		});
+	} catch (e) {
+		console.log(`Error in getDoneAppointments`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.getDeletedAppointments = async (req, res, next) => {
+	try {
+		const pageNo = parseInt(req.body.pageNo) || 1; 
+		const pageSize = parseInt(req.body.pageSize) || 10; 
+		const offset = (pageNo - 1) * pageSize;
+
+		const data = await model.getDeletedAppointments(offset, pageSize); 
+		const totalCount = await model.countDeletedAppointments();
+
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send({
+				pageNo,
+				pageSize,
+				totalCount,
+				data
+			});
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No deleted appointments found." });
+		}
+	} catch (e) {
+		console.log(`Error in getDeletedAppointments`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.markMultipleAsDeleted = async (req, res, next) => {
+	const { appointmentIds } = req.body; // Expecting an array of appointment IDs
+
+	if (!Array.isArray(appointmentIds) || appointmentIds.length === 0) {
+		return res.status(StatusCodes.BAD_REQUEST).send({ message: "Appointment IDs are required." });
+	}
+
+	try {
+		const results = await Promise.all(appointmentIds.map(id => model.updateDeletedApp(id, '1'))); // Update each appointment
+		res.status(StatusCodes.OK).send({ message: "Appointments marked as deleted successfully.", results });
+	} catch (e) {
+		console.log(`Error in markMultipleAsDeleted`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
 
