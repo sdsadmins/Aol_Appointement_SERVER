@@ -1001,7 +1001,7 @@ exports.addNewAppointmentAdmin = async (req, res, next) => {
 				position_order: '0',
 				darshan_line_email: '0',
 				for_ap: 'other',
-				country_code: '',
+				country_code: req.body.country_code,
 				state: 0,
 				meet_subject: req.body.purpose,
 				mtype: req.body.tbsReq ? 'TBS' : 'Regular',
