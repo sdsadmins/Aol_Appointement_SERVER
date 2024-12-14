@@ -971,12 +971,12 @@ exports.addNewAppointmentAdmin = async (req, res, next) => {
 				ap_id: appointmentId,
 				full_name: req.body.name,
 				designation: req.body.designation,
-				ref_name: req.body.referenceName,
+				// ref_name: req.body.referenceName,
 				no_people: req.body.noOfPeople,
 				mobile_no: req.body.mobileNo,
 				email_id: req.body.email,
-				ref_mobile_no: req.body.refPhone,
-				ref_email_id: req.body.refEmail,
+				// ref_mobile_no: req.body.refPhone,
+				// ref_email_id: req.body.refEmail,
 				venue: req.body.venue,
 				meet_purpose: req.body.purpose,
 				secretary_note: req.body.remarks || '',
@@ -1101,7 +1101,7 @@ exports.getDoneAppointments = async (req, res, next) => {
 	try {
 		const pageNo = parseInt(req.body.pageNo) || 1;
 		const pageSize = parseInt(req.body.pageSize) || 10;
-		const offset = (pageNo - 1) * pageSize; 
+		const offset = (pageNo - 1) * pageSize;
 
 		const { totalCount, data } = await model.getDoneAppointments(offset, pageSize);
 		res.status(StatusCodes.OK).send({
@@ -1118,11 +1118,11 @@ exports.getDoneAppointments = async (req, res, next) => {
 
 exports.getDeletedAppointments = async (req, res, next) => {
 	try {
-		const pageNo = parseInt(req.body.pageNo) || 1; 
-		const pageSize = parseInt(req.body.pageSize) || 10; 
+		const pageNo = parseInt(req.body.pageNo) || 1;
+		const pageSize = parseInt(req.body.pageSize) || 10;
 		const offset = (pageNo - 1) * pageSize;
 
-		const data = await model.getDeletedAppointments(offset, pageSize); 
+		const data = await model.getDeletedAppointments(offset, pageSize);
 		const totalCount = await model.countDeletedAppointments();
 
 		if (!_.isEmpty(data)) {
@@ -1155,5 +1155,93 @@ exports.markMultipleAsDeleted = async (req, res, next) => {
 		console.log(`Error in markMultipleAsDeleted`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
+};
+
+exports.updateAssignToFill = async (req, res, next) => {
+    try {
+        const ap_id = req.params.ap_id;
+        const { name } = req.body;
+
+        console.log("Request Parameters:", { ap_id, name });
+
+        if (!name) {
+            return res.status(StatusCodes.BAD_REQUEST).send({ message: "Name is required" });
+        }
+
+        const updateResult = await model.updateAssignToFill(ap_id, name);
+        
+        console.log("Update Result:", updateResult);
+
+        const updatedAppointment = await model.findOneByApId(ap_id);
+
+        if (updatedAppointment) {
+            res.status(StatusCodes.OK).send({ 
+                message: "Assign to fill updated successfully", 
+                data: updatedAppointment[0] // Send the updated appointment details
+            });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+        }
+    } catch (e) {
+        console.log(`Error in updateAssignToFill`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
+
+exports.updateAppointmentAdmin = async (req, res, next) => {
+    uploadAdmin(req, res, async (err) => { 
+        if (err) {
+            console.log("Error during file upload:", err);
+            return res.status(400).send({
+                message: err.message
+            });
+        }
+
+        try {
+            const { ap_id } = req.params;
+            
+            // Create appointment data object
+            const appointmentData = {
+                full_name: req.body.name,
+                designation: req.body.designation,
+                no_people: req.body.noOfPeople,
+                mobile_no: req.body.mobileNo,
+                email_id: req.body.email,
+                venue: req.body.venue,
+                meet_purpose: req.body.purpose,
+                secretary_note: req.body.remarks || '',
+                ap_date: req.body.date,
+                ap_time: req.body.time,
+                city: req.body.city,
+                country: req.body.country,
+                from_date: req.body.from_date,
+                to_date: req.body.to_date
+            };
+
+            // Add attachment if file was uploaded
+            if (req.file) {
+                appointmentData.attachment = req.file.filename;
+            }
+
+            // Update the appointment in the database
+            const data = await model.update(ap_id, appointmentData);
+
+            if (data) {
+                res.status(StatusCodes.OK).send({
+                    message: 'Appointment updated successfully',
+                    data: data
+                });
+            } else {
+                res.status(StatusCodes.BAD_REQUEST).send({
+                    message: "Failed to update appointment"
+                });
+            }
+        } catch (e) {
+            console.log(`Error in updateAppointmentAdmin`, e);
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+                message: e.message
+            });
+        }
+    });
 };
 

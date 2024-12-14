@@ -333,4 +333,20 @@ exports.countDeletedAppointments = async () => {
     return result[0] ? result[0].total : 0; // Return total count or 0 if no results
 };
 
+exports.updateAssignToFill = async (ap_id, name) => {
+    console.log("Updating assign_to_fill for ap_id:", ap_id, "with name:", name); // Log the parameters
+    const query = `UPDATE appointment_request SET assign_to_fill = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [name, ap_id]);
+    
+    console.log("Update Result:", result); // Log the result of the updateRow call
+
+    // Check if the update was successful
+    if (result) {
+        return this.findOne(ap_id); // Return the updated appointment details
+    } else {
+        console.warn("No rows affected for ap_id:", ap_id); // Log if no rows were affected
+        return null; // Return null if no update occurred
+    }
+};
+
 
