@@ -982,11 +982,14 @@ exports.addNewAppointmentAdmin = async (req, res, next) => {
 				secretary_note: req.body.remarks || '',
 				ap_date: req.body.date,
 				ap_time: formattedTime,
+				from_date: req.body.from_date,
+				to_date: req.body.to_date,
 				picture: req.body.photo || '',
 				ap_status: 'pending',
 				email_status: req.body.dontSendEmailSms ? '0' : '1',
 				entry_date: new Date().toISOString().split('T')[0],
 				entry_date_time: new Date().toISOString(),
+				
 
 				deleted_app: '0',
 				more_info: '0',
