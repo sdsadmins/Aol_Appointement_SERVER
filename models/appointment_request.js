@@ -349,4 +349,24 @@ exports.updateAssignToFill = async (ap_id, name) => {
     }
 };
 
+exports.updateByApId = async (ap_id, object) => {
+    const updateKeys = [];
+    let updateValues = [];
+    for (const key in object) {
+        if (validationDto.hasOwnProperty(key)) {
+            updateKeys.push(`${key}=?`);
+            if (_.isNumber(object[key])) {
+                updateValues.push(+object[key]);
+            } else {
+                updateValues.push(`${object[key]}`);
+            }
+        }
+    }
+    let query = `UPDATE appointment_request SET ? WHERE ap_id = ? `;
+    updateValues = updateValues.concat([ap_id]);
+    query = query.replace("?", updateKeys.join(","));
+    const result = await updateRow(query, updateValues);
+    return result ? this.findOneByApId(ap_id) : null;
+};
+
 
