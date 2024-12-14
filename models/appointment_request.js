@@ -17,6 +17,11 @@ exports.find = async (userId, offset, pageSize) => {
     return getRows(query, [userId, offset, pageSize]);
 };
 
+// Added updateAppointmentStatus function to handle appointment status updates
+exports.updateAppointmentStatus = async (appid, status) => {
+    const query = `UPDATE appointment_request SET ap_status = ? WHERE ap_id = ?`;
+    return updateRow(query, [status, appid]);
+};
 
 exports.findOne = async (id) => {
     const query = `SELECT * FROM appointment_request WHERE id = ?`;
