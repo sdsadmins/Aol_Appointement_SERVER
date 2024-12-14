@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const emailService = require('../services/emailService');
+const { country_code, from_date, to_date } = require('../dto/appointment_request.dto');
 
 
 // Add multer storage configuration at the top of the file
@@ -1001,7 +1002,7 @@ exports.addNewAppointmentAdmin = async (req, res, next) => {
 				position_order: '0',
 				darshan_line_email: '0',
 				for_ap: 'other',
-				country_code: '',
+				country_code: req.body.country_code,
 				state: 0,
 				meet_subject: req.body.purpose,
 				mtype: req.body.tbsReq ? 'TBS' : 'Regular',
@@ -1192,7 +1193,7 @@ exports.updateAssignToFill = async (req, res, next) => {
 };
 
 exports.updateAppointmentAdmin = async (req, res, next) => {
-    uploadAdmin(req, res, async (err) => { 
+    uploadAdmin(req, res, async (err) => { // Use multer middleware for file upload
         if (err) {
             console.log("Error during file upload:", err);
             return res.status(400).send({
@@ -1201,33 +1202,43 @@ exports.updateAppointmentAdmin = async (req, res, next) => {
         }
 
         try {
-            const { ap_id } = req.params;
-            
-            // Create appointment data object
+            const { ap_id } = req.params; // Extract appointment ID from the route parameter
+
+            // Convert 12-hour time format to 24-hour
+            const timeComponents = req.body.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            let hours = parseInt(timeComponents[1]);
+            const minutes = timeComponents[2];
+            const period = timeComponents[3].toUpperCase();
+
+            if (period === 'PM' && hours < 12) hours += 12;
+            if (period === 'AM' && hours === 12) hours = 0;
+
+            const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
+
+            // Prepare appointment data
             const appointmentData = {
                 full_name: req.body.name,
-                designation: req.body.designation,
-                no_people: req.body.noOfPeople,
-                mobile_no: req.body.mobileNo,
                 email_id: req.body.email,
+                country_code: req.body.country_code,
+                mobile_no: req.body.mobileNo,
+                picture: req.body.photo || '', // Ensure to handle the uploaded file
                 venue: req.body.venue,
+                country: req.body.country,
+                designation: req.body.designation,
+                from_date: req.body.from_date,
+                to_date: req.body.to_date,
+                no_people: req.body.noOfPeople,
                 meet_purpose: req.body.purpose,
                 secretary_note: req.body.remarks || '',
                 ap_date: req.body.date,
-                ap_time: req.body.time,
-                city: req.body.city,
-                country: req.body.country,
-                from_date: req.body.from_date,
-                to_date: req.body.to_date
+                ap_time: formattedTime,
+                ap_status: req.body.status || 'pending',
+                email_status: req.body.dontSendEmailSms ? '0' : '1',
+                // attachment: req.files ? req.files.map(file => file.filename).join(',') : '', // Store multiple filenames
             };
 
-            // Add attachment if file was uploaded
-            if (req.file) {
-                appointmentData.attachment = req.file.filename;
-            }
-
-            // Update the appointment in the database
-            const data = await model.update(ap_id, appointmentData);
+            // Update appointment in the database
+            const data = await model.updateByApId(ap_id, appointmentData);
 
             if (data) {
                 res.status(StatusCodes.OK).send({
