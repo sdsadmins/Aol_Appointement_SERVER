@@ -732,464 +732,6 @@ exports.getRightNavCount = async (req, res, next) => {
 	}
 };
 
-// Divya --added on 11 Dec 2024
-exports.schedule_appointment = async (req, res, next) => {
-	// console.log("schedule_appointment controller");
-	// console.log(req.body);
-
-	const { appid, admin_user_id, ap_date, ap_time, meet_type, venue, to_be_opt, stopsendemailmessage, send_vds, stay_avail } = req.body;
-
-	// Generate QR Code - HOLD
-	
-
-	// Get Appointment Data By ID
-	const app_data = await model.findOneById(appid);
-	// console.log("appointment",app_data); 
-
-	// Get Logged in User data
-	const sec_data = await adminUserModel.findOne(admin_user_id);
-	// console.log("sec_data",sec_data);
-	let secretary_user_location = sec_data[0].user_location;
-	let secretary_user_name = sec_data[0].full_name;
-	let extra_sign = sec_data[0].extra_sign;
-
-	let ap_status = app_data[0].ap_status;
-	let ap_location = app_data[0].ap_location;
-	const EURloc = [22, 23, 24, 25, 26, 27, 28, 30, 31];
-
-	// Get User Data By ID
-	const user_data = await userModel.findOne(app_data[0].user_id);
-	// console.log("user_data",user_data);
-
-	let full_name, email_id, mobile_no;
-	// Get User Details
-	if(app_data[0].for_ap == "me"){
-		full_name = user_data[0].full_name;
-		email_id = user_data[0].email_id;
-		mobile_no = user_data[0].phone_no;
-	} else {
-		full_name = app_data[0]['full_name'];
-		email_id = app_data[0]['email_id'];
-		mobile_no = app_data[0]['mobile_no'];
-	}
-
-	// let app_status = "";
-	let logaptStatus = ap_status;
-	let approve_status = "";
-	let rescheduled_app = "";
-
-	if(ap_status == "Scheduled"){
-		rescheduled_app = "Rescheduled";
-	}else if(ap_status == "Pending"){
-		rescheduled_app = "Scheduled";
-	}else if(ap_status=="TB R/S"){
-		rescheduled_app = "Rescheduled";
-	}else if(ap_status == "SB"){
-		rescheduled_app = "Rescheduled";
-	} else if(ap_status == "GK"){
-		rescheduled_app = "Rescheduled";
-	} else if(ap_status == "PB"){
-		rescheduled_app = "Rescheduled";
-	} else{
-		rescheduled_app = null;
-	}
-
-	if(ap_date && ap_time){
-		approve_status = "Scheduled";
-		logaptStatus = "Scheduled";
-	}
-
-	if(ap_date && ap_time && ap_status == "SB"){
-		approve_status = "SB";
-		logaptStatus = "Rescheduled";
-	}
-
-	if(ap_date && ap_time && ap_status == "GK"){
-		approve_status = "GK";
-		logaptStatus = "Rescheduled";
-	}
-
-	if(ap_date && ap_time && ap_status == "PB"){
-		approve_status = "PB";
-		logaptStatus = "Rescheduled";
-	}
-
-	if(to_be_opt){
-		approve_status = "TB R/S";
-		logaptStatus = "Rescheduled";
-	}
-
-	if(rescheduled_app == "Rescheduled"){
-		logaptStatus = "Rescheduled";
-	}
-	
-	// if(venue == "Satsang Backstage"){
-	// 	approve_status = "SB";
-	// }
-	// if(venue == "Gurukul"){
-	// 	approve_status = "GK";
-	// }
-	// if(venue == "Puja Backstage"){
-	// 	approve_status = "PB";
-	// }
-
-	let date_time = '';
-	if (ap_date && ap_time) {
-		date_time = `${ap_date} ${ap_time}`;
-	}
-
-	// if($post['app_location'] !='' && $post['app_location'] != 'undefined'){
-	// 	if($post['venue'] == 'undefined'){
-	// 		$post['venue'] = $post['app_location'];
-	// 		$_POST['venue'] = $post['app_location'];
-	// 	}
-	// }
-	
-	const data = {
-		ap_status: approve_status || null, // Using `|| null` for undefined fallback
-		ap_date: ap_date,
-		app_visit: venue, 
-		mtype: meet_type,
-		deleted_app: '0',
-		slotted_by: admin_user_id
-	};
-
-	// if (isset($post['send_arrival']) && $post['send_arrival']=="Yes") {
-	// 	$data['arrival_time'] = $post['arrival_time'];
-	// }else{
-	// 	$data['arrival_time'] = NULL;
-	// }
-
-	// if (isset($post['send_schedule']) && $post['send_schedule']=="Yes") {
-	// 	$data['schedule_date'] = $post['schedule_date'];
-	// 	$data['schedule_time'] = $post['schedule_time'];
-	// 	$data['send_schedule'] = $post['send_schedule'];
-	// }else{
-	// 	$data['schedule_date'] = NULL;
-	// 	$data['schedule_time'] = NULL;
-	// 	$data['send_schedule'] = 'No';
-	// 	$post['send_schedule'] = "No";
-	// }
-
-	if(stay_avail){
-		data.stay_avail = "Yes";
-	} else {
-		data.stay_avail = "";
-	}
-
-	if (ap_time !== '') {
-		data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
-	}
-
-	if(rescheduled_app == "Rescheduled"){
-		data.admit_status = "";
-		data.admitted_by = "0";
-	}
-
-	const result = await model.update(app_data[0].id, data);
-	// console.log("result",result);
-	// console.log("update data",data);
-
-	if (result && !_.isEmpty(result)) {
-		// console.log("Appointment updated !!");
-		// Re-scheduled Logs --added on 22 Aug 2024
-		const apt_his_data = {
-			ap_id: "",
-			ap_date: ap_date,
-			mtype: meet_type,
-			app_visit: venue, 
-			ap_status: logaptStatus, 
-			slotted_by: admin_user_id
-		};
-		if (ap_time !== '') {
-			apt_his_data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
-		}
-		// $apthisqry = $this->db->insert('appt_req_history', $apt_his_data);
-		// End Re-scheduled Logs
-
-		// Update Assign to
-		// console.log("admin role",sec_data[0].role);
-		if(sec_data[0].role == "secretary"){
-			if(approve_status == 'Scheduled' || approve_status == 'TB R/S'){
-				if(app_data[0].assign_to == ""){
-					const assigntodata = {
-						assign_to: admin_user_id
-					}
-					const assigntoresult = await model.update(app_data[0].id, assigntodata);
-				}
-			}
-		} else {
-			console.log("no assign to update");
-		}
-
-		// Send Email and SMS
-		if(!stopsendemailmessage){
-			if (ap_time !== '') {
-				const aptime = new Date(`1970-01-01T${ap_time}`).toLocaleTimeString('en-US', {
-					hour: '2-digit',
-					minute: '2-digit',
-					hour12: true
-				});
-				// post.ap_time = time;
-				// console.log("ap_time",aptime);
-			}
-			// if($post['send_arrival'] == 'Yes'){
-			// 	$post['ap_time'] = date('h:i A',strtotime($post['arrival_time']));
-			// }
-
-			let get_temp_data, getSmsData;
-
-			if (rescheduled_app == "Rescheduled") {
-				if (EURloc.includes(ap_location)) {
-					// Europe location found
-					get_temp_data = await emailModel.findOne(41);
-					// console.log("Europe",getTempData);
-				} else {
-					get_temp_data = await emailModel.findOne(2);
-					getSmsData = await smsModel.findOne(3);
-					// console.log("non Europe",getTempData, getSmsData);
-				}
-			}
-
-			if (ap_date && ap_time && rescheduled_app != "Rescheduled") {
-				if (EURloc.includes(ap_location)) {
-					// Europe location found
-					get_temp_data = await emailModel.findOne(40);
-				} else {
-					get_temp_data = await emailModel.findOne(1);
-					getSmsData = await smsModel.findOne(2);
-				}
-			}
-
-			if (approve_status == 'TB R/S') {
-				if(app_data[0].ap_status == "TB R/S"){ 
-					if (EURloc.includes(ap_location)) {
-						// Europe location found
-						get_temp_data = await emailModel.findOne(41);
-					} else {
-						get_temp_data = await emailModel.findOne(39);
-						getSmsData = await smsModel.findOne(5);
-					}
-				}else{
-					if (EURloc.includes(ap_location)) {
-						// Europe location found
-						get_temp_data = await emailModel.findOne(40);
-					} else {
-						if(venue == "Special Enclosure - Shiva Temple, next to Yoga school, Art of Living International Center, Bangalore."){
-							get_temp_data = await emailModel.findOne(38);
-						} else {
-							get_temp_data = await emailModel.findOne(9);
-						}
-						getSmsData = await smsModel.findOne(5);
-					}
-				}
-			}
-
-			if (approve_status == 'SB') {
-				get_temp_data = await emailModel.findOne(42);
-			}
-			
-			if (approve_status == 'GK') {
-				get_temp_data = await emailModel.findOne(43);
-			}
-
-			// console.log(get_temp_data,getSmsData);
-			const email_template_subject = {};
-			const email_template_data = {};
-			if (rescheduled_app == 'Rescheduled' || approve_status == 'Scheduled' || approve_status == 'TB R/S' || approve_status == 'SB' || approve_status == 'GK' || approve_status == 'PB') {
-				// Extract the email template subject and body
-				email_template_subject.body = get_temp_data[0].template_subject;
-				email_template_data.body = get_temp_data[0].template_data;
-
-				// Replace '{$SUB}' in the email body if it exists
-				if (email_template_data.body.includes('{$SUB}')) {
-					email_template_data.body = email_template_data.body.replace('{$SUB}', app_data[0].meet_subject);
-				}
-
-				// Get Appointment Data By ID
-				const capp_data = await model.findOneById(appid);
-				const zoom_pw = `<br>use password: ${capp_data[0].password}`;
-
-				if(capp_data[0].app_visit != 'undefined' || capp_data[0].app_visit != '')
-				{
-					const aplocation = capp_data[0].ap_location;
-					let ji = "";
-					let app_visit = capp_data[0].app_visit;
-					
-					if(aplocation !== '1' && aplocation !== '3' && aplocation !== '15'){
-						ji = '';
-					}else{
-						ji = 'Ji';
-					}
-
-					if(capp_data[0].app_visit == 'Online Zoom Meeting' && capp_data[0].join_url != '')
-					{
-						app_visit = app_visit+'<br><a href='+capp_data[0].join_url+'> Click Here For Zoom Link</a>'+$zoom_pw;
-					}
-					if (email_template_data.body.includes('{$app_location}')) {
-						email_template_data.body = email_template_data.body.replace(
-							'{$app_location}',
-							app_visit
-						);
-					}
-
-					if (capp_data[0].app_visit === 'Online Zoom Meeting' && capp_data[0].join_url === '') {
-						return true;
-					}
-
-					let email_note = '';
-					if (capp_data[0].app_visit === 'Online Zoom Meeting') {
-						email_note = '<b>Note:</b> Please make sure to join the Zoom Meeting 5-10 minutes before the given time.';
-					} else {
-						if (ap_location !== "1") {
-							email_note = "<p><strong>NOTE:</strong> Please come to the above location 15 minutes prior to your scheduled time.</p>";
-						} else {
-							email_note = "<p><strong>NOTE:</strong> Please come to the above location 15 minutes prior to your scheduled time. Kindly do not bring any flowers to the appointment / darshan venue.";
-						}
-					}
-
-					if (stay_avail) {
-						email_note = email_note;
-					} else {
-						if (ap_location === "1") {
-							email_note = email_note + "This appointment is not a confirmation for your stay at the Ashram. You are requested to check with Ashram Housing for availability of accommodation.<br>";
-						}
-					}
-					
-					if(approve_status == "GK" || approve_status == "PB"){
-						email_note = email_note + "Women in their monthly cycle are requested to refrain from going to Gurukul or Puja backstage. Please let us know if you are on your monthly cycle and we will arrange an alternate venue for the darshan.";
-					}
-
-					if (ap_location === "1") {
-						email_note =  email_note + "<br/>Please note that our official photographer will be taking your pictures with Gurudev which can be accessed by logging onto https://divineapp.findmypik.com. Alternatively you may write to darshanline@yahoo.com for assistance with pictures.";
-					}
-
-					email_note = email_note + "</p>";
-
-					const subject_variables = { '{$AID}': app_data[0].ap_id };
-					let subject = email_template_subject.body;
-
-					for (const [key, value] of Object.entries(subject_variables)) {
-						subject = subject.replace(new RegExp(key, 'g'), value);
-					}
-
-					const getOffLoc = await locModel.findOneByAddress(venue);
-					// console.log("getOffLoc",getOffLoc);
-
-					let sms_ji = '';
-					let sms_app_location = capp_data[0].app_visit;
-
-					if (aplocation !== '1' && aplocation !== '3' && aplocation !== '15') {
-						sms_ji = '';
-					} else {
-						sms_ji = 'Ji';
-						if (approve_status === 'TB R/S') {
-							if (aplocation === '1') {
-								sms_app_location = getOffLoc[0].short_name + "  15 minutes";
-							} else {
-								sms_app_location = capp_data[0].app_visit;
-							}
-						} else {
-							if (aplocation === '1') {
-								sms_app_location = getOffLoc[0].short_name;
-							} else {
-								sms_app_location = capp_data[0].app_visit;
-							}
-						}
-					}
-
-					// const rsvp_url = `${base_url}rsvp/update/r/${appid}`;
-
-					let post_people = app_data[0].no_people;
-					let no_people = "";
-					if(post_people != "1"){
-						no_people = post_people+" people";
-					} else {
-						no_people = post_people+" person"; 
-					}
-
-					// Define template variables
-					const templateVariables = {
-						'{$AID}': app_data[0].ap_id,
-						'{$full_name}': full_name,
-						'{$ji}': ji,
-						//'{$rsvp_link}': rsvp_url,
-						'{$date}': new Date(ap_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), // Format date as d-M-Y
-						'{$time}': ap_time || '', // Default to empty string if ap_time is not set
-						'{$no_people}': no_people,
-						'{$secretary_user_name}': secretary_user_name,
-						'{$extra_sign}': extra_sign,
-						'{$app_location}': app_visit,
-						'{$email_note}': email_note,
-						'{$meet_subject}': app_data[0].meet_subject,
-						//'{$site_url}': 'http://localhost:3000', // Assuming you hardcode the base URL for now
-					};
-
-					// Replace template variables in the email body
-					let templateData = email_template_data.body;
-					for (let key in templateVariables) {
-						const value = templateVariables[key];
-						templateData = templateData.replace(new RegExp(key, 'g'), value); // Global replace for all occurrences
-					}
-
-					const email_footer_data = await emailFooterModel.findOne(secretary_user_location);
-					// console.log("email_footer_data",email_footer_data);
-					const email_footer_template = {};
-					email_footer_template.body = email_footer_data[0].footer_content;
-
-					
-					// Variables to replace in the template
-					const footer_variables = {
-						'{$secretary_user_name}': secretary_user_name,
-						'{$extra_sign}': extra_sign
-					};
-
-					// Email footer body template
-					let footer = email_footer_template.body;
-
-					// Replace variables in the template
-					Object.keys(footer_variables).forEach((key) => {
-						footer = footer.replace(new RegExp(key, 'g'), footer_variables[key]);
-					});
-
-					// console.log('Footer:', footer);
-
-					if (EURloc.includes(ap_location)) {
-						// Do Nothing
-					} else {
-						templateData += footer;
-					}
-					// console.log("email template data",templateData);
-					
-					// Send Email
-					// from email, from name, to, subject, mailtype = html, message = templateData
-
-		// Call the model method to get appointments by location
-		const data = await model.getAppointmentsByLocation(location_id);
-
-					// Send SMS [HOLD]
-
-
-				}
-				
-			}
-
-		}
-
-
-		// Send VDS Email [HOLD]
-
-		// return response
-		res.status(StatusCodes.OK).send({ message: 'Appointment scheduled successfully.' });
-	} else {
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Failed to schedule appointment !' });
-	}
-
-
-	// res.send('Appointment scheduled');
-
-};
-
 exports.getAppointmentsByLocation = async (req, res, next) => {
 	try {
 		const { location_id } = req.params; // Extract location_id from the route parameter
@@ -1625,6 +1167,461 @@ exports.markMultipleAsDeleted = async (req, res, next) => {
 		console.log(`Error in markMultipleAsDeleted`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
+};
+
+// Divya --added on 11 Dec 2024
+exports.schedule_appointment = async (req, res, next) => {
+	// console.log("schedule_appointment controller");
+	// console.log(req.body);
+
+	const { appid, admin_user_id, ap_date, ap_time, meet_type, venue, to_be_opt, stopsendemailmessage, send_vds, stay_avail } = req.body;
+
+	// Generate QR Code - HOLD
+	
+
+	// Get Appointment Data By ID
+	const app_data = await model.findOneById(appid);
+	// console.log("appointment",app_data); 
+
+	// Get Logged in User data
+	const sec_data = await adminUserModel.findOne(admin_user_id);
+	// console.log("sec_data",sec_data);
+	let secretary_user_location = sec_data[0].user_location;
+	let secretary_user_name = sec_data[0].full_name;
+	let extra_sign = sec_data[0].extra_sign;
+
+	let ap_status = app_data[0].ap_status;
+	let ap_location = app_data[0].ap_location;
+	const EURloc = [22, 23, 24, 25, 26, 27, 28, 30, 31];
+
+	// Get User Data By ID
+	const user_data = await userModel.findOne(app_data[0].user_id);
+	// console.log("user_data",user_data);
+
+	let full_name, email_id, mobile_no;
+	// Get User Details
+	if(app_data[0].for_ap == "me"){
+		full_name = user_data[0].full_name;
+		email_id = user_data[0].email_id;
+		mobile_no = user_data[0].phone_no;
+	} else {
+		full_name = app_data[0]['full_name'];
+		email_id = app_data[0]['email_id'];
+		mobile_no = app_data[0]['mobile_no'];
+	}
+
+	// let app_status = "";
+	let logaptStatus = ap_status;
+	let approve_status = "";
+	let rescheduled_app = "";
+
+	if(ap_status == "Scheduled"){
+		rescheduled_app = "Rescheduled";
+	}else if(ap_status == "Pending"){
+		rescheduled_app = "Scheduled";
+	}else if(ap_status=="TB R/S"){
+		rescheduled_app = "Rescheduled";
+	}else if(ap_status == "SB"){
+		rescheduled_app = "Rescheduled";
+	} else if(ap_status == "GK"){
+		rescheduled_app = "Rescheduled";
+	} else if(ap_status == "PB"){
+		rescheduled_app = "Rescheduled";
+	} else{
+		rescheduled_app = null;
+	}
+
+	if(ap_date && ap_time){
+		approve_status = "Scheduled";
+		logaptStatus = "Scheduled";
+	}
+
+	if(ap_date && ap_time && ap_status == "SB"){
+		approve_status = "SB";
+		logaptStatus = "Rescheduled";
+	}
+
+	if(ap_date && ap_time && ap_status == "GK"){
+		approve_status = "GK";
+		logaptStatus = "Rescheduled";
+	}
+
+	if(ap_date && ap_time && ap_status == "PB"){
+		approve_status = "PB";
+		logaptStatus = "Rescheduled";
+	}
+
+	if(to_be_opt){
+		approve_status = "TB R/S";
+		logaptStatus = "Rescheduled";
+	}
+
+	if(rescheduled_app == "Rescheduled"){
+		logaptStatus = "Rescheduled";
+	}
+	
+	// if(venue == "Satsang Backstage"){
+	// 	approve_status = "SB";
+	// }
+	// if(venue == "Gurukul"){
+	// 	approve_status = "GK";
+	// }
+	// if(venue == "Puja Backstage"){
+	// 	approve_status = "PB";
+	// }
+
+	let date_time = '';
+	if (ap_date && ap_time) {
+		date_time = `${ap_date} ${ap_time}`;
+	}
+
+	// if($post['app_location'] !='' && $post['app_location'] != 'undefined'){
+	// 	if($post['venue'] == 'undefined'){
+	// 		$post['venue'] = $post['app_location'];
+	// 		$_POST['venue'] = $post['app_location'];
+	// 	}
+	// }
+	
+	const data = {
+		ap_status: approve_status || null, // Using `|| null` for undefined fallback
+		ap_date: ap_date,
+		app_visit: venue, 
+		mtype: meet_type,
+		deleted_app: '0',
+		slotted_by: admin_user_id
+	};
+
+	// if (isset($post['send_arrival']) && $post['send_arrival']=="Yes") {
+	// 	$data['arrival_time'] = $post['arrival_time'];
+	// }else{
+	// 	$data['arrival_time'] = NULL;
+	// }
+
+	// if (isset($post['send_schedule']) && $post['send_schedule']=="Yes") {
+	// 	$data['schedule_date'] = $post['schedule_date'];
+	// 	$data['schedule_time'] = $post['schedule_time'];
+	// 	$data['send_schedule'] = $post['send_schedule'];
+	// }else{
+	// 	$data['schedule_date'] = NULL;
+	// 	$data['schedule_time'] = NULL;
+	// 	$data['send_schedule'] = 'No';
+	// 	$post['send_schedule'] = "No";
+	// }
+
+	if(stay_avail){
+		data.stay_avail = "Yes";
+	} else {
+		data.stay_avail = "";
+	}
+
+	if (ap_time !== '') {
+		data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
+	}
+
+	if(rescheduled_app == "Rescheduled"){
+		data.admit_status = "";
+		data.admitted_by = "0";
+	}
+
+	const result = await model.update(app_data[0].id, data);
+	// console.log("result",result);
+	// console.log("update data",data);
+
+	if (result && !_.isEmpty(result)) {
+		// console.log("Appointment updated !!");
+		// Re-scheduled Logs --added on 22 Aug 2024
+		const apt_his_data = {
+			ap_id: "",
+			ap_date: ap_date,
+			mtype: meet_type,
+			app_visit: venue, 
+			ap_status: logaptStatus, 
+			slotted_by: admin_user_id
+		};
+		if (ap_time !== '') {
+			apt_his_data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
+		}
+		// $apthisqry = $this->db->insert('appt_req_history', $apt_his_data);
+		// End Re-scheduled Logs
+
+		// Update Assign to
+		// console.log("admin role",sec_data[0].role);
+		if(sec_data[0].role == "secretary"){
+			if(approve_status == 'Scheduled' || approve_status == 'TB R/S'){
+				if(app_data[0].assign_to == ""){
+					const assigntodata = {
+						assign_to: admin_user_id
+					}
+					const assigntoresult = await model.update(app_data[0].id, assigntodata);
+				}
+			}
+		} else {
+			console.log("no assign to update");
+		}
+
+		// Send Email and SMS
+		if(!stopsendemailmessage){
+			if (ap_time !== '') {
+				const aptime = new Date(`1970-01-01T${ap_time}`).toLocaleTimeString('en-US', {
+					hour: '2-digit',
+					minute: '2-digit',
+					hour12: true
+				});
+				// post.ap_time = time;
+				// console.log("ap_time",aptime);
+			}
+			// if($post['send_arrival'] == 'Yes'){
+			// 	$post['ap_time'] = date('h:i A',strtotime($post['arrival_time']));
+			// }
+
+			let get_temp_data, getSmsData;
+
+			if (rescheduled_app == "Rescheduled") {
+				if (EURloc.includes(ap_location)) {
+					// Europe location found
+					get_temp_data = await emailModel.findOne(41);
+					// console.log("Europe",getTempData);
+				} else {
+					get_temp_data = await emailModel.findOne(2);
+					getSmsData = await smsModel.findOne(3);
+					// console.log("non Europe",getTempData, getSmsData);
+				}
+			}
+
+			if (ap_date && ap_time && rescheduled_app != "Rescheduled") {
+				if (EURloc.includes(ap_location)) {
+					// Europe location found
+					get_temp_data = await emailModel.findOne(40);
+				} else {
+					get_temp_data = await emailModel.findOne(1);
+					getSmsData = await smsModel.findOne(2);
+				}
+			}
+
+			if (approve_status == 'TB R/S') {
+				if(app_data[0].ap_status == "TB R/S"){ 
+					if (EURloc.includes(ap_location)) {
+						// Europe location found
+						get_temp_data = await emailModel.findOne(41);
+					} else {
+						get_temp_data = await emailModel.findOne(39);
+						getSmsData = await smsModel.findOne(5);
+					}
+				}else{
+					if (EURloc.includes(ap_location)) {
+						// Europe location found
+						get_temp_data = await emailModel.findOne(40);
+					} else {
+						if(venue == "Special Enclosure - Shiva Temple, next to Yoga school, Art of Living International Center, Bangalore."){
+							get_temp_data = await emailModel.findOne(38);
+						} else {
+							get_temp_data = await emailModel.findOne(9);
+						}
+						getSmsData = await smsModel.findOne(5);
+					}
+				}
+			}
+
+			if (approve_status == 'SB') {
+				get_temp_data = await emailModel.findOne(42);
+			}
+			
+			if (approve_status == 'GK') {
+				get_temp_data = await emailModel.findOne(43);
+			}
+
+			// console.log(get_temp_data,getSmsData);
+			const email_template_subject = {};
+			const email_template_data = {};
+			if (rescheduled_app == 'Rescheduled' || approve_status == 'Scheduled' || approve_status == 'TB R/S' || approve_status == 'SB' || approve_status == 'GK' || approve_status == 'PB') {
+				// Extract the email template subject and body
+				email_template_subject.body = get_temp_data[0].template_subject;
+				email_template_data.body = get_temp_data[0].template_data;
+
+				// Replace '{$SUB}' in the email body if it exists
+				if (email_template_data.body.includes('{$SUB}')) {
+					email_template_data.body = email_template_data.body.replace('{$SUB}', app_data[0].meet_subject);
+				}
+
+				// Get Appointment Data By ID
+				const capp_data = await model.findOneById(appid);
+				const zoom_pw = `<br>use password: ${capp_data[0].password}`;
+
+				if(capp_data[0].app_visit != 'undefined' || capp_data[0].app_visit != '')
+				{
+					const aplocation = capp_data[0].ap_location;
+					let ji = "";
+					let app_visit = capp_data[0].app_visit;
+					
+					if(aplocation !== '1' && aplocation !== '3' && aplocation !== '15'){
+						ji = '';
+					}else{
+						ji = 'Ji';
+					}
+
+					if(capp_data[0].app_visit == 'Online Zoom Meeting' && capp_data[0].join_url != '')
+					{
+						app_visit = app_visit+'<br><a href='+capp_data[0].join_url+'> Click Here For Zoom Link</a>'+$zoom_pw;
+					}
+					if (email_template_data.body.includes('{$app_location}')) {
+						email_template_data.body = email_template_data.body.replace(
+							'{$app_location}',
+							app_visit
+						);
+					}
+
+					if (capp_data[0].app_visit === 'Online Zoom Meeting' && capp_data[0].join_url === '') {
+						return true;
+					}
+
+					let email_note = '';
+					if (capp_data[0].app_visit === 'Online Zoom Meeting') {
+						email_note = '<b>Note:</b> Please make sure to join the Zoom Meeting 5-10 minutes before the given time.';
+					} else {
+						if (ap_location !== "1") {
+							email_note = "<p><strong>NOTE:</strong> Please come to the above location 15 minutes prior to your scheduled time.</p>";
+						} else {
+							email_note = "<p><strong>NOTE:</strong> Please come to the above location 15 minutes prior to your scheduled time. Kindly do not bring any flowers to the appointment / darshan venue.";
+						}
+					}
+
+					if (stay_avail) {
+						email_note = email_note;
+					} else {
+						if (ap_location === "1") {
+							email_note = email_note + "This appointment is not a confirmation for your stay at the Ashram. You are requested to check with Ashram Housing for availability of accommodation.<br>";
+						}
+					}
+					
+					if(approve_status == "GK" || approve_status == "PB"){
+						email_note = email_note + "Women in their monthly cycle are requested to refrain from going to Gurukul or Puja backstage. Please let us know if you are on your monthly cycle and we will arrange an alternate venue for the darshan.";
+					}
+
+					if (ap_location === "1") {
+						email_note =  email_note + "<br/>Please note that our official photographer will be taking your pictures with Gurudev which can be accessed by logging onto https://divineapp.findmypik.com. Alternatively you may write to darshanline@yahoo.com for assistance with pictures.";
+					}
+
+					email_note = email_note + "</p>";
+
+					const subject_variables = { '{$AID}': app_data[0].ap_id };
+					let subject = email_template_subject.body;
+
+					for (const [key, value] of Object.entries(subject_variables)) {
+						subject = subject.replace(new RegExp(key, 'g'), value);
+					}
+
+					const getOffLoc = await locModel.findOneByAddress(venue);
+					// console.log("getOffLoc",getOffLoc);
+
+					let sms_ji = '';
+					let sms_app_location = capp_data[0].app_visit;
+
+					if (aplocation !== '1' && aplocation !== '3' && aplocation !== '15') {
+						sms_ji = '';
+					} else {
+						sms_ji = 'Ji';
+						if (approve_status === 'TB R/S') {
+							if (aplocation === '1') {
+								sms_app_location = getOffLoc[0].short_name + "  15 minutes";
+							} else {
+								sms_app_location = capp_data[0].app_visit;
+							}
+						} else {
+							if (aplocation === '1') {
+								sms_app_location = getOffLoc[0].short_name;
+							} else {
+								sms_app_location = capp_data[0].app_visit;
+							}
+						}
+					}
+
+					// const rsvp_url = `${base_url}rsvp/update/r/${appid}`;
+
+					let post_people = app_data[0].no_people;
+					let no_people = "";
+					if(post_people != "1"){
+						no_people = post_people+" people";
+					} else {
+						no_people = post_people+" person"; 
+					}
+
+					// Define template variables
+					const templateVariables = {
+						'{$AID}': app_data[0].ap_id,
+						'{$full_name}': full_name,
+						'{$ji}': ji,
+						//'{$rsvp_link}': rsvp_url,
+						'{$date}': new Date(ap_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), // Format date as d-M-Y
+						'{$time}': ap_time || '', // Default to empty string if ap_time is not set
+						'{$no_people}': no_people,
+						'{$secretary_user_name}': secretary_user_name,
+						'{$extra_sign}': extra_sign,
+						'{$app_location}': app_visit,
+						'{$email_note}': email_note,
+						'{$meet_subject}': app_data[0].meet_subject,
+						//'{$site_url}': 'http://localhost:3000', // Assuming you hardcode the base URL for now
+					};
+
+					// Replace template variables in the email body
+					let templateData = email_template_data.body;
+					for (let key in templateVariables) {
+						const value = templateVariables[key];
+						templateData = templateData.replace(new RegExp(key, 'g'), value); // Global replace for all occurrences
+					}
+
+					const email_footer_data = await emailFooterModel.findOne(secretary_user_location);
+					// console.log("email_footer_data",email_footer_data);
+					const email_footer_template = {};
+					email_footer_template.body = email_footer_data[0].footer_content;
+
+					
+					// Variables to replace in the template
+					const footer_variables = {
+						'{$secretary_user_name}': secretary_user_name,
+						'{$extra_sign}': extra_sign
+					};
+
+					// Email footer body template
+					let footer = email_footer_template.body;
+
+					// Replace variables in the template
+					Object.keys(footer_variables).forEach((key) => {
+						footer = footer.replace(new RegExp(key, 'g'), footer_variables[key]);
+					});
+
+					// console.log('Footer:', footer);
+
+					if (EURloc.includes(ap_location)) {
+						// Do Nothing
+					} else {
+						templateData += footer;
+					}
+					// console.log("email template data",templateData);
+					
+					// Send Email
+					// from email, from name, to, subject, mailtype = html, message = templateData
+
+					// Send SMS [HOLD]
+
+
+				}
+				
+			}
+
+		}
+
+
+		// Send VDS Email [HOLD]
+
+		// return response
+		res.status(StatusCodes.OK).send({ message: 'Appointment scheduled successfully.' });
+	} else {
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Failed to schedule appointment !' });
+	}
+
+
+	// res.send('Appointment scheduled');
+
 };
 
 exports.updateAssignToFill = async (req, res, next) => {
