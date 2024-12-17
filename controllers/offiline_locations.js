@@ -27,6 +27,23 @@ exports.getAll = async (req, res, next) => {
 	}
 };
 
+exports.getAllActive = async (req, res, next) => {
+	try {
+		const data = await model.findActive();
+		if (!_.isEmpty(data)) {
+			const result = {
+				data: data
+			};
+			res.status(StatusCodes.OK).send(result);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
+		}
+	} catch (e) {
+		console.log(`Error in getAll`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+	}
+};
+
 exports.getOne = async (req, res, next) => {
 	try {
 		const id = req.params.id;
