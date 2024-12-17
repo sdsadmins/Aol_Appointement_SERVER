@@ -19,8 +19,9 @@ exports.find = async (userId, offset, pageSize) => {
 
 // Added updateAppointmentStatus function to handle appointment status updates
 exports.updateAppointmentStatus = async (appid, status) => {
-    const query = `UPDATE appointment_request SET ap_status = ? WHERE ap_id = ?`;
-    return updateRow(query, [status, appid]);
+    const query = `UPDATE appointment_request SET ap_status = ?, star_rate = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [status, status, appid]);
+    return result;
 };
 
 exports.findOne = async (id) => {
@@ -372,6 +373,12 @@ exports.updateByApId = async (ap_id, object) => {
     query = query.replace("?", updateKeys.join(","));
     const result = await updateRow(query, updateValues);
     return result ? this.findOneByApId(ap_id) : null;
+};
+
+exports.updateAppointmentStar = async (appid, starRate) => {
+    const query = `UPDATE appointment_request SET star_rate = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [starRate, appid]); // Update only star_rate
+    return result;
 };
 
 

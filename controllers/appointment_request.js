@@ -1261,20 +1261,29 @@ exports.updateAppointmentAdmin = async (req, res, next) => {
 
 exports.changeAppointmentStar = async (req, res, next) => {
 	try {
-		const { ap_id } = req.body; // Extract appid from the request body
+		const { ap_id } = req.body; // Extract apid from the request body
 
-		// Ensure appid is provided
+		// Ensure apid is provided
 		if (!ap_id) {
 			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
 		}
 
-		// Update the star_rate to 1
-		const data = await model.updateAppointmentStatus(ap_id, '1'); // Assuming '1' indicates starred
+		// Fetch the current star_rate
+		const appointment = await model.findOneByApId(ap_id);
+		if (!appointment || appointment.length === 0) {
+			return res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+		}
+
+		const currentStarRate = appointment[0].star_rate;
+		const newStarRate = currentStarRate === '1' ? '0' : '1'; // Toggle star_rate
+
+		// Update the star_rate in the database
+		const data = await model.updateAppointmentStar(ap_id, newStarRate); // Update only star_rate
 
 		if (data) {
-			res.status(StatusCodes.OK).send({ message: "Appointment starred successfully" });
+			res.status(StatusCodes.OK).send({ message: `${newStarRate}` });
 		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to star appointment" });
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to update appointment star status" });
 		}
 	} catch (e) {
 		console.log(`Error in changeAppointmentStar`, e);
