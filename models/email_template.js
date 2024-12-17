@@ -3,9 +3,11 @@ const SqlString = require('sqlstring');
 const validationDto = require('../dto/email_template.dto');
 const _ = require('lodash');
 
-exports.find = async (offset, pageSize) => {
-    const query = `SELECT t.id, t.template_name, t.template_subject, t.template_data, t.type, t.status, t.for_the_loc FROM email_template as t`;
-    return getRows(query,[offset,pageSize]);
+exports.find = async (offset, pageSize, status) => {
+    const query = `SELECT t.id, t.template_name, t.template_subject, t.template_data, t.type, t.status, t.for_the_loc 
+                   FROM email_template as t 
+                   WHERE t.status = ?`;
+    return getRows(query, [status, offset, pageSize]);
 }
 
 exports.findOne = async (id) => {

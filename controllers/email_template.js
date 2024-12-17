@@ -10,7 +10,7 @@ exports.getAll = async (req, res, next) => {
 		const pageSize = await getPageSize(req);
 		const offset = (pageNo - 1) * pageSize;
 		const totalCount = await model.count();
-		const data = await model.find(offset, pageSize);
+		const data = await model.find(offset, pageSize, 1);
 		if (!_.isEmpty(data)) {
 			const result = {
 				pageNo: pageNo,
