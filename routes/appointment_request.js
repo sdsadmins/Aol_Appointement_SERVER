@@ -31,4 +31,7 @@ router.get('/todayAppointments/:id', controller.getTodayAppointments);
 router.get('/upcomingAppointmentsByDate/:date', checkAuth, controller.getUpcomingAppointmentsByDate);
 router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCount);
 
+
+router.post('/schedule_appointment', controller.schedule_appointment);
+
 module.exports = router;
