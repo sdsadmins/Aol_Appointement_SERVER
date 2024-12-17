@@ -1261,15 +1261,15 @@ exports.updateAppointmentAdmin = async (req, res, next) => {
 
 exports.changeAppointmentStar = async (req, res, next) => {
 	try {
-		const { appid } = req.body; // Extract appid from the request body
+		const { ap_id } = req.body; // Extract appid from the request body
 
 		// Ensure appid is provided
-		if (!appid) {
+		if (!ap_id) {
 			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
 		}
 
 		// Update the star_rate to 1
-		const data = await model.updateAppointmentStatus(appid, '1'); // Assuming '1' indicates starred
+		const data = await model.updateAppointmentStatus(ap_id, '1'); // Assuming '1' indicates starred
 
 		if (data) {
 			res.status(StatusCodes.OK).send({ message: "Appointment starred successfully" });
