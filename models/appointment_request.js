@@ -103,30 +103,9 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (userId, dateString, allowedStatuses = null) => {
-    let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND deleted_app = '0'`;
-    const params = [dateString];
-
-    if (userId) {
-        query += ` AND user_id = ?`;
-        params.push(userId);
-    }
-
-    // Add status filtering if allowedStatuses is provided
-    if (allowedStatuses && allowedStatuses.length > 0) {
-        query += ` AND ap_status IN (?)`;
-        params.push(allowedStatuses);
-    }
-
-    // Add order by clause
-    query += ` ORDER BY ap_time ASC`;
-
-    console.log('Executing query:', query, 'with params:', params);
-
-    const results = await getRows(query, params);
-    console.log('Query results:', results);
-
-    return results;
+exports.getAppointmentsByDate = async (userId, apDate, apLocation) => {
+    const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND user_id = ? AND ap_location = ?`; // Ensure you are querying the correct table
+    return getRows(query, [apDate, userId, apLocation]); // Updated parameters
 };
 
 exports.findOneByApId = async (apId) => {

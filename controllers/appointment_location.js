@@ -116,4 +116,29 @@ exports.search = async (req, res, next) => {
 	}
 };
 
+exports.getTodayAppointments = async (req, res, next) => {
+	try {
+		const userId = req.params.user_id;
+		const apLocation = req.params.location_id;
+		const apDate = req.query.ap_date;
+
+		console.log(`Fetching appointments for userId: ${userId}, apLocation: ${apLocation}, apDate: ${apDate}`);
+
+		if (!apDate) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "Appointment date (ap_date) is required." });
+		}
+
+		const data = await model.getAppointmentsByDate(userId, apDate, apLocation);
+
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send(data);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for the specified date." });
+		}
+	} catch (e) {
+		console.log(`Error in getTodayAppointments`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
 

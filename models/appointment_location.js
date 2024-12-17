@@ -75,4 +75,9 @@ exports.searchCount = async (key) => {
     }
 }
 
+exports.getAppointmentsByDate = async (userId, apDate, apLocation) => {
+    const query = `SELECT * FROM appointment_location WHERE DATE(ap_date) = ? AND user_id = ? AND ap_location = ?`;
+    return getRows(query, [apDate, userId, apLocation]);
+};
+
 

@@ -13,5 +13,6 @@ router.put('/:id', checkAuth, updateValidator(createDto), controller.update);
 router.patch('/:id', checkAuth, controller.update);
 router.delete('/:id', checkAuth, controller.remove);
 router.get('/search/:searchKey', checkAuth, controller.search);
+router.get('/todayAppointments/:user_id/:location_id', checkAuth, controller.getTodayAppointments);
 
 module.exports = router;

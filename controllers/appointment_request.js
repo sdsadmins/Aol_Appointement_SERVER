@@ -535,41 +535,22 @@ exports.makeAppointmentUndone = async (req, res, next) => {
 
 exports.getTodayAppointments = async (req, res, next) => {
 	try {
-		const today = new Date();
-		const dateString = today.toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
+		const userId = req.params.user_id; // Extract user_id from the route parameter
+		const apLocation = req.params.location_id; // Extract location_id from the route parameter
+		const apDate = req.query.ap_date; // Get the ap_date from the query parameters
 
-		const allowedStatuses = ['Scheduled', 'TB R/S', 'Done', 'SB', 'GK'];
-		const data = await model.getAppointmentsByDate(null, dateString, allowedStatuses); // Pass allowed statuses to the model method
+		console.log(`Fetching appointments for userId: ${userId}, apLocation: ${apLocation}, apDate: ${apDate}`);
 
-		console.log('Data received from model:', data); // Log the data
+		if (!apDate) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "Appointment date (ap_date) is required." });
+		}
 
-		if (data && data.length > 0) {
-			const classifiedAppointments = data.map(appointment => {
-				const date = new Date(appointment.ap_time * 1000); // Convert Unix timestamp to Date
-				const hours = date.getUTCHours().toString().padStart(2, '0');
-				const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-				const seconds = date.getUTCSeconds().toString().padStart(2, '0');
-				const timeString = `${hours}:${minutes}:${seconds}`; // Format as hh:mm:ss
+		const data = await model.getAppointmentsByDate(userId, apDate, apLocation); // Call the model method with userId, apDate, and apLocation
 
-				let timePeriod;
-				if (date.getUTCHours() < 16) {
-					timePeriod = 'Morning';
-				} else if (date.getUTCHours() >= 16 && date.getUTCHours() < 19) {
-					timePeriod = 'Evening';
-				} else {
-					timePeriod = 'Night';
-				}
-
-				return {
-					...appointment,
-					timePeriod, // Add the classification
-					formattedTime: timeString // Add the formatted time
-				};
-			});
-
-			res.status(StatusCodes.OK).send(classifiedAppointments);
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send(data);
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for today." });
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for the specified date." });
 		}
 	} catch (e) {
 		console.log(`Error in getTodayAppointments`, e);
