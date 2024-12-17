@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-exports.sendMailer = async (toMail, subject, body) => {
+exports.sendMailer = async (toMail, subject, body, cc, bcc) => {
     try {
         // Create transporter object with SMTP server details
         const transporter = nodemailer.createTransport({
@@ -16,6 +16,8 @@ exports.sendMailer = async (toMail, subject, body) => {
         const result = await transporter.sendMail({
             from: process.env.ACCOUNT_EMAIL || 'divine@findmypik.com',
             to: toMail,
+            cc: cc,
+            bcc: bcc,
             subject: subject,
             html: body
         });

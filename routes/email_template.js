@@ -13,5 +13,6 @@ router.put('/:id', checkAuth, updateValidator(createDto), controller.update);
 router.patch('/:id', checkAuth, controller.update);
 router.delete('/:id', checkAuth, controller.remove);
 router.get('/search/:searchKey', checkAuth, controller.search);
+router.post('/sendMail', checkAuth, controller.sendEmail);
 
 module.exports = router;

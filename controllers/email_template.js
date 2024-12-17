@@ -2,6 +2,7 @@ const _ = require('lodash');
 const {StatusCodes} = require('http-status-codes');
 const model = require("../models/email_template");
 const {getPageNo, getPageSize} = require('../utils/helper');
+const emailService = require('../services/emailService');
 
 exports.getAll = async (req, res, next) => {
 	try {
@@ -113,6 +114,26 @@ exports.search = async (req, res, next) => {
 	} catch (e) {
 		console.log(`Error in search`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+	}
+};
+
+exports.sendEmail = async (req, res, next) => {
+	try {
+		const { appointeeEmail, referenceEmail, cc, bcc, subject, body, templateId } = req.body;
+
+		// Validate required fields
+		if (!subject || !body || !templateId) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: 'Missing required fields' });
+		}
+
+		// Construct the 'to' field
+		const toMail = [appointeeEmail, referenceEmail].filter(Boolean).join(', ');
+
+		const result = await emailService.sendMailer(toMail, subject, body, cc, bcc, templateId);
+		res.status(StatusCodes.OK).send({ message: 'Email sent successfully', result });
+	} catch (e) {
+		console.log(`Error in sendEmail`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 

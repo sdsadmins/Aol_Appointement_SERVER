@@ -1190,23 +1190,6 @@ exports.schedule_appointment = async (req, res, next) => {
 
 };
 
-exports.getAppointmentsByLocation = async (req, res, next) => {
-	try {
-		const { location_id } = req.params; // Extract location_id from the route parameter
-
-		// Call the model method to get appointments by location
-		const data = await model.getAppointmentsByLocation(location_id);
-
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for the specified location." });
-		}
-	} catch (e) {
-		console.log(`Error in getAppointmentsByLocation`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
-};
 
 exports.getAppointmentById = async (req, res, next) => {
 	try {

@@ -17,9 +17,15 @@ exports.find = async (userId, offset, pageSize) => {
     return getRows(query, [userId, offset, pageSize]);
 };
 
+// Added updateAppointmentStatus function to handle appointment status updates
+exports.updateAppointmentStatus = async (appid, status) => {
+    const query = `UPDATE appointment_request SET ap_status = ?, star_rate = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [status, status, appid]);
+    return result;
+};
 
 exports.findOne = async (id) => {
-    const query = `SELECT t.id, t.ap_id, t.user_id, t.for_ap, t.full_name, t.email_id, t.country_code, t.mobile_no, t.ref_name, t.ref_country_code, t.ref_mobile_no, t.ref_email_id, t.ap_location, t.app_visit, t.city, t.state, t.country, t.designation, t.designationcomp, t.meet_purpose, t.meet_subject, t.no_people, t.no_people_partial, t.from_date, t.to_date, t.tags, t.attachment, t.attachment_url, t.picture, t.secretary_note, t.gurudev_remark, t.assign_to, t.assign_to_fill, t.assigned_by, t.ap_date, t.ap_time, t.star_rate, t.ap_status, t.check_in_status, t.darshan_line, t.backstage_status, t.deleted_app, t.entry_date_time, t.position_order, t.darshan_line_email, t.entry_date, t.mtype, t.zoom_link, t.access_token, t.venue, t.join_url, t.password, t.travelled, t.from_where, t.currently_doing, t.dop, t.selCountry, t.selState, t.selCity, t.toa, t.curr_loc, t.email_status, t.tcode, t.taughtCourses, t.more_info, t.admit_status, t.admitted_by, t.no_people_names, t.no_people_numbers, t.no_people_eleven_details, t.send_schedule, t.arrival_time, t.schedule_date, t.schedule_time, t.schedule_send_status, t.stay_avail FROM appointment_request as t WHERE t.id = ? `;
+    const query = `SELECT * FROM appointment_request WHERE id = ?`;
     return getRows(query, [id]);
 }
 
@@ -96,14 +102,23 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (userId, dateString) => {
-    let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ?`;
+exports.getAppointmentsByDate = async (userId, dateString, allowedStatuses = null) => {
+    let query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND deleted_app = '0'`;
     const params = [dateString];
 
     if (userId) {
         query += ` AND user_id = ?`;
         params.push(userId);
     }
+
+    // Add status filtering if allowedStatuses is provided
+    if (allowedStatuses && allowedStatuses.length > 0) {
+        query += ` AND ap_status IN (?)`;
+        params.push(allowedStatuses);
+    }
+
+    // Add order by clause
+    query += ` ORDER BY ap_time ASC`;
 
     console.log('Executing query:', query, 'with params:', params);
 
@@ -131,8 +146,8 @@ exports.updateCheckInStatus = async (appid, { status, secretary_note, gurudev_re
 };
 
 exports.updateAppointmentStatus = async (appid, status) => {
-    const query = `UPDATE appointment_request SET ap_status = ? WHERE ap_id = ?`;
-    const result = await updateRow(query, [status, appid]);
+    const query = `UPDATE appointment_request SET ap_status = ?, star_rate = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [status, '1', appid]);
     return result;
 };
 
@@ -148,6 +163,11 @@ exports.updateDeletedApp = async (appid, status) => {
     return result;
 };
 
+exports.markAppointmentAsDeleted = async (appid) => {
+    const query = `UPDATE appointment_request SET deleted_app = '1' WHERE ap_id = ?`;
+    const result = await updateRow(query, [appid]);
+    return result ? this.findOneByApId(appid) : null;
+};
 
 // Fetch and classify appointments
 exports.classifyAppointments = async () => {
@@ -194,14 +214,177 @@ exports.classifyAppointments = async () => {
 // };
 
 exports.getUpcomingAppointmentsByDate = async (dateString) => {
-    const query = `SELECT * FROM appointment_request WHERE ap_date > NOW()`; // Fetch appointments after the current date
-    return getRows(query);
+    // Validate the input date
+    const inputDate = new Date(dateString);
+
+    if (isNaN(inputDate.getTime())) {
+        throw new Error('Invalid date format');
+    }
+
+    // Use parameterized query to prevent SQL injection
+    const query = `
+        SELECT DISTINCT DATE(ap_date) as appointment_date 
+        FROM appointment_request 
+        WHERE 
+            DATE(ap_date) >= ? 
+            AND DATE(ap_date) != '0000-00-00'
+        ORDER BY appointment_date ASC
+    `;
+
+    return getRows(query, [dateString]);
 };
 
 exports.getAppointmentCountByDate = async (userId, apDate) => {
     const query = `SELECT COUNT(*) as total FROM appointment_request WHERE user_id = ? AND DATE(ap_date) = ?`;
     const result = await getRows(query, [userId, apDate]);
     return result[0] ? result[0].total : 0; // Return the count or 0 if no results
+};
+
+exports.getAppointmentsByLocation = async (locationId) => {
+    const query = `SELECT * FROM appointment_request WHERE ap_location = ?`;
+    return getRows(query, [locationId]);
+};
+
+exports.getStarredAppointments = async () => {
+    try {
+        const query = `SELECT * FROM appointment_request WHERE star_rate = '1'`;
+        console.log('Executing query:', query);
+
+        const results = await getRows(query);
+        console.log('Query results:', results);
+
+        return results;
+    } catch (error) {
+        console.error('Database error:', error);
+        throw error;
+    }
+};
+
+
+exports.filterAppointmentsByAssignedStatus = async (assignToFill, offset, pageSize) => {
+    console.log('Filtering appointments with:', { assignToFill, offset, pageSize });
+
+    let query = `SELECT * FROM appointment_request`;
+    let countQuery = `SELECT COUNT(*) as total FROM appointment_request`;
+    let whereClause = '';
+    let params = [];
+
+    // Handle different assignToFill scenarios
+    switch (assignToFill) {
+        case 'all':
+            // No additional filtering for 'all'
+            break;
+        case 'assigned':
+            whereClause = ` WHERE assign_to_fill IS NOT NULL AND assign_to_fill != ''`;
+            break;
+        case 'unassigned':
+            whereClause = ` WHERE (assign_to_fill IS NULL OR assign_to_fill = '')`;
+            break;
+        default:
+            // For specific assign_to_fill values
+            whereClause = ` WHERE assign_to_fill = ?`;
+            params.push(assignToFill);
+    }
+
+    // Add pagination
+    const limitClause = ` LIMIT ?, ?`;
+    params.push(offset, pageSize);
+
+    // Construct full queries
+    query += whereClause + limitClause;
+    countQuery += whereClause;
+
+    try {
+        // Execute count query
+        const countResult = await getRows(countQuery,
+            assignToFill === 'all' ? [] : params.slice(0, -2)
+        );
+        const totalCount = countResult[0] ? countResult[0].total : 0;
+
+        // Execute data query
+        const data = await getRows(query, params);
+
+        return {
+            totalCount,  // Total number of records matching the filter
+            totalPages: Math.ceil(totalCount / pageSize),  // Total number of pages
+            currentPage: Math.floor(offset / pageSize) + 1,  // Current page number
+            pageSize,  // Number of records per page
+            data
+        };
+    } catch (error) {
+        console.error('Detailed Error filtering appointments:', error);
+        return {
+            totalCount: 0,
+            totalPages: 0,
+            currentPage: 1,
+            pageSize,
+            data: []
+        };
+    }
+};
+
+exports.getDoneAppointments = async (offset, pageSize) => {
+    const query = `SELECT * FROM appointment_request WHERE ap_status = 'Done' LIMIT ?, ?`;
+    const countQuery = `SELECT COUNT(*) as total FROM appointment_request WHERE ap_status = 'Done'`; // Count query for Done appointments
+    const countResult = await getRows(countQuery); // Execute count query
+    const data = await getRows(query, [offset, pageSize]); // Execute data query
+    return {
+        totalCount: countResult[0] ? countResult[0].total : 0, // Return total count
+        data // Return the appointment data
+    };
+};
+
+exports.getDeletedAppointments = async (offset, pageSize) => {
+    const query = `SELECT * FROM appointment_request WHERE deleted_app = '1' LIMIT ?, ?`;
+    return getRows(query, [offset, pageSize]); // Pass offset and pageSize as parameters
+};
+
+exports.countDeletedAppointments = async () => {
+    const query = `SELECT COUNT(*) as total FROM appointment_request WHERE deleted_app = '1'`;
+    const result = await getRows(query);
+    return result[0] ? result[0].total : 0; // Return total count or 0 if no results
+};
+
+exports.updateAssignToFill = async (ap_id, name) => {
+    console.log("Updating assign_to_fill for ap_id:", ap_id, "with name:", name); // Log the parameters
+    const query = `UPDATE appointment_request SET assign_to_fill = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [name, ap_id]);
+    
+    console.log("Update Result:", result); // Log the result of the updateRow call
+
+    // Check if the update was successful
+    if (result) {
+        return this.findOne(ap_id); // Return the updated appointment details
+    } else {
+        console.warn("No rows affected for ap_id:", ap_id); // Log if no rows were affected
+        return null; // Return null if no update occurred
+    }
+};
+
+exports.updateByApId = async (ap_id, object) => {
+    const updateKeys = [];
+    let updateValues = [];
+    for (const key in object) {
+        if (validationDto.hasOwnProperty(key)) {
+            updateKeys.push(`${key}=?`);
+            if (_.isNumber(object[key])) {
+                updateValues.push(+object[key]);
+            } else {
+                updateValues.push(`${object[key]}`);
+            }
+        }
+    }
+    let query = `UPDATE appointment_request SET ? WHERE ap_id = ? `;
+    updateValues = updateValues.concat([ap_id]);
+    query = query.replace("?", updateKeys.join(","));
+    const result = await updateRow(query, updateValues);
+    return result ? this.findOneByApId(ap_id) : null;
+};
+
+exports.updateAppointmentStar = async (appid, starRate) => {
+    const query = `UPDATE appointment_request SET star_rate = ? WHERE ap_id = ?`;
+    const result = await updateRow(query, [starRate, appid]); // Update only star_rate
+    return result;
 };
 
 
