@@ -63,4 +63,6 @@ router.use('/email_footer', email_footerRouter);
 router.use('/cities', citiesRouter);
 router.use('/auth', loginRouter);
 
+// router.use('/schedule_appointment', appointment_requestRouter);
+
 module.exports = router;

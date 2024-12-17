@@ -45,4 +45,7 @@ router.post('/updateAssignToFill/:ap_id', checkAuth, controller.updateAssignToFi
 router.put('/updateAppointmentAdmin/:ap_id', checkAuth, controller.updateAppointmentAdmin);
 router.post('/change_appointment_star', checkAuth, controller.changeAppointmentStar);
 
+
+router.post('/schedule_appointment', controller.schedule_appointment);
+
 module.exports = router;

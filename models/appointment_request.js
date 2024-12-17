@@ -134,6 +134,12 @@ exports.findOneByApId = async (apId) => {
     return getRows(query, [apId]);
 };
 
+// Divya --added on 12 Dec 2024
+exports.findOneById = async (id) => {
+    const query = `SELECT * FROM appointment_request WHERE id = ?`; // Query to find by ap_id
+    return getRows(query, [id]);
+};
+
 exports.updateCheckInStatus = async (appid, { status, secretary_note, gurudev_remark }) => {
     const query = `UPDATE appointment_request SET check_in_status = ?, secretary_note = ?, gurudev_remark = ? WHERE ap_id = ?`;
     const result = await updateRow(query, [status, secretary_note, gurudev_remark, appid]);

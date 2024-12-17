@@ -8,9 +8,19 @@ exports.find = async (offset, pageSize) => {
     return getRows(query,[offset,pageSize]);
 }
 
+exports.findActive = async () => {
+    const query = `SELECT t.id, t.short_name, t.address, t.status, t.location FROM offiline_locations as t WHERE t.status = ? `;
+    return getRows(query,[1]);
+}
+
 exports.findOne = async (id) => {
     const query = `SELECT t.id, t.short_name, t.address, t.status, t.location FROM offiline_locations as t WHERE t.id = ? `;
     return getRows(query,[id]);
+}
+
+exports.findOneByAddress = async (addr) => {
+    const query = `SELECT t.id, t.short_name, t.address, t.status, t.location FROM offiline_locations as t WHERE t.address = ? `;
+    return getRows(query,[addr]);
 }
 
 exports.insert = async (object) => {
