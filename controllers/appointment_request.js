@@ -243,6 +243,7 @@ exports.submitSelfAppointment = async (req, res, next) => {
 				attachment: req.file ? req.file.filename : '', // Store the filename
 				// attachment_url: req.file ? `http://localhost:${process.env.PORT}/uploads/appointments/${req.file.filename}` : '', // Construct the URL
 				currently_doing: req.body.currently_doing,
+				designationcomp: req.body.designationcomp,
 				dop: req.body.dop,
 				toa: req.body.toa || 'offline',
 				curr_loc: req.body.curr_loc || '',
