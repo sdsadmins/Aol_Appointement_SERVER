@@ -1315,20 +1315,26 @@ exports.updateAssignToFill = async (req, res, next) => {
 };
 
 exports.updateAppointmentAdmin = async (req, res, next) => {
-    uploadAdmin(req, res, async (err) => { // Use multer middleware for file upload
+    uploadAdmin(req, res, async (err) => {
         if (err) {
-            console.log("Error during file upload:", err);
-            return res.status(400).send({
-                message: err.message
-            });
+            console.error("Error during file upload:", err);
+            return res.status(400).send({ message: "File upload error: " + err.message });
         }
 
         try {
-            const { ap_id } = req.params; // Extract appointment ID from the route parameter
+            // Extract and validate `ap_id` from route parameters
+            const { ap_id } = req.params;
+            if (!ap_id || isNaN(ap_id)) {
+                return res.status(400).send({ message: "Invalid appointment ID provided." });
+            }
 
-            // Convert 12-hour time format to 24-hour
+            // Validate and parse `time` from the request body
+            if (!req.body.time || !/(\d+):(\d+)\s*(AM|PM)/i.test(req.body.time)) {
+                return res.status(400).send({ message: "Invalid time format. Expected format: HH:MM AM/PM" });
+            }
+
             const timeComponents = req.body.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
-            let hours = parseInt(timeComponents[1]);
+            let hours = parseInt(timeComponents[1], 10);
             const minutes = timeComponents[2];
             const period = timeComponents[3].toUpperCase();
 
@@ -1339,44 +1345,41 @@ exports.updateAppointmentAdmin = async (req, res, next) => {
 
             // Prepare appointment data
             const appointmentData = {
-                full_name: req.body.name,
-                email_id: req.body.email,
-                country_code: req.body.country_code,
-                mobile_no: req.body.mobileNo,
-                picture: req.body.photo || '', // Ensure to handle the uploaded file
-                venue: req.body.venue,
-                country: req.body.country,
-                designation: req.body.designation,
-                from_date: req.body.from_date,
-                to_date: req.body.to_date,
-                no_people: req.body.noOfPeople,
-                meet_purpose: req.body.purpose,
+                full_name: req.body.name || '',
+                email_id: req.body.email || '',
+                country_code: req.body.country_code || '',
+                mobile_no: req.body.mobileNo || '',
+                picture: req.body.photo || '', // Handle the uploaded file or empty string
+                venue: req.body.venue || '',
+                country: req.body.country || '',
+                designation: req.body.designation || '',
+                from_date: req.body.from_date || null,
+                to_date: req.body.to_date || null,
+                no_people: req.body.noOfPeople || 0,
+                meet_purpose: req.body.purpose || '',
                 secretary_note: req.body.remarks || '',
-                ap_date: req.body.date,
+                ap_date: req.body.date || null,
                 ap_time: formattedTime,
                 ap_status: req.body.status || 'pending',
                 email_status: req.body.dontSendEmailSms ? '0' : '1',
-                // attachment: req.files ? req.files.map(file => file.filename).join(',') : '', // Store multiple filenames
+                // Uncomment if handling file attachments
+                // attachment: req.files ? req.files.map(file => file.filename).join(',') : '',
             };
 
             // Update appointment in the database
-            const data = await model.updateByApId(ap_id, appointmentData);
+            const data = await model.updateByApId(ap_id.trim(), appointmentData);
 
             if (data) {
                 res.status(StatusCodes.OK).send({
-                    message: 'Appointment updated successfully',
-                    data: data
+                    message: "Appointment updated successfully",
+                    data: data,
                 });
             } else {
-                res.status(StatusCodes.BAD_REQUEST).send({
-                    message: "Failed to update appointment"
-                });
+                res.status(StatusCodes.BAD_REQUEST).send({ message: "Failed to update appointment" });
             }
         } catch (e) {
-            console.log(`Error in updateAppointmentAdmin`, e);
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
-                message: e.message
-            });
+            console.error("Error in updateAppointmentAdmin:", e);
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
         }
     });
 };
