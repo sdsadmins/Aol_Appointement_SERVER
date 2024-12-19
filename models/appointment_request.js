@@ -103,9 +103,9 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (userId, apDate, apLocation) => {
-    const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND user_id = ? AND ap_location = ?`; // Ensure you are querying the correct table
-    return getRows(query, [apDate, userId, apLocation]); // Updated parameters
+exports.getAppointmentsByDate = async (assignTo, dateString, locationId) => {
+    const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ? AND ap_location = ?`; // Updated query to use dateString
+    return getRows(query, [dateString, assignTo, locationId]); // Pass dateString as the first parameter
 };
 
 exports.findOneByApId = async (apId) => {
@@ -326,15 +326,15 @@ exports.countDeletedAppointments = async () => {
 };
 
 exports.updateAssignToFill = async (ap_id, name) => {
-    console.log("Updating assign_to_fill for ap_id:", ap_id, "with name:", name); // Log the parameters
-    const query = `UPDATE appointment_request SET assign_to_fill = ? WHERE ap_id = ?`;
+    console.log("Updating assign_to for ap_id:", ap_id, "with name:", name); // Log the parameters
+    const query = `UPDATE appointment_request SET assign_to = ? WHERE ap_id = ?`; // Ensure this updates assign_to
     const result = await updateRow(query, [name, ap_id]);
     
     console.log("Update Result:", result); // Log the result of the updateRow call
 
     // Check if the update was successful
     if (result) {
-        return this.findOne(ap_id); // Return the updated appointment details
+        return this.findOneByApId(ap_id); // Return the updated appointment details
     } else {
         console.warn("No rows affected for ap_id:", ap_id); // Log if no rows were affected
         return null; // Return null if no update occurred

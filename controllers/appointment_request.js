@@ -535,17 +535,12 @@ exports.makeAppointmentUndone = async (req, res, next) => {
 
 exports.getTodayAppointments = async (req, res, next) => {
 	try {
-		const userId = req.params.user_id; // Extract user_id from the route parameter
-		const apLocation = req.params.location_id; // Extract location_id from the route parameter
-		const apDate = req.query.ap_date; // Get the ap_date from the query parameters
+		const assignTo = req.params.assign_to; // Extract assign_to from the route parameter
+		const locationId = req.params.location_id; // Extract location_id from the route parameter
+		const dateString = req.params.date; // Extract date from the route parameter
 
-		console.log(`Fetching appointments for userId: ${userId}, apLocation: ${apLocation}, apDate: ${apDate}`);
-
-		if (!apDate) {
-			return res.status(StatusCodes.BAD_REQUEST).send({ message: "Appointment date (ap_date) is required." });
-		}
-
-		const data = await model.getAppointmentsByDate(userId, apDate, apLocation); // Call the model method with userId, apDate, and apLocation
+		// Call the model method with assignTo, dateString, and locationId
+		const data = await model.getAppointmentsByDate(assignTo, dateString, locationId);
 
 		if (!_.isEmpty(data)) {
 			res.status(StatusCodes.OK).send(data);
@@ -1291,8 +1286,8 @@ async function generateQRCode(data) {
 
 exports.updateAssignToFill = async (req, res, next) => {
     try {
-        const ap_id = req.params.ap_id;
-        const { name } = req.body;
+        const ap_id = req.params.ap_id; // Extract ap_id from the route parameter
+        const { name } = req.body; // Extract name from the request body
 
         console.log("Request Parameters:", { ap_id, name });
 
@@ -1300,7 +1295,7 @@ exports.updateAssignToFill = async (req, res, next) => {
             return res.status(StatusCodes.BAD_REQUEST).send({ message: "Name is required" });
         }
 
-        const updateResult = await model.updateAssignToFill(ap_id, name);
+        const updateResult = await model.updateAssignToFill(ap_id, name); // Call the model method
         
         console.log("Update Result:", updateResult);
 
@@ -1308,7 +1303,7 @@ exports.updateAssignToFill = async (req, res, next) => {
 
         if (updatedAppointment) {
             res.status(StatusCodes.OK).send({ 
-                message: "Assign to fill updated successfully", 
+                message: "Assign to updated successfully", 
                 data: updatedAppointment[0] // Send the updated appointment details
             });
         } else {

@@ -27,7 +27,7 @@ router.post('/more_info_appointment/:user_id', checkAuth, controller.moreInfoApp
 router.get('/restore_appointment/:ap_id', checkAuth, controller.restoreAppointment);
 router.post('/deleteAppt/:user_id', checkAuth, controller.deleteAppointment);
 router.get('/get-tomorrows-appointments/:id', controller.getTomorrowsAppointments);
-router.get('/todayAppointments/:user_id/:location_id', checkAuth, controller.getTodayAppointments);
+router.get('/todayAppointments/:assign_to/:location_id/:date', checkAuth, controller.getTodayAppointments);
 router.get('/upcomingAppointmentsByDate/:date', checkAuth, controller.getUpcomingAppointmentsByDate);
 router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCount);
 router.get('/appointmentsByLocation/:location_id', checkAuth, controller.getAppointmentsByLocation);
