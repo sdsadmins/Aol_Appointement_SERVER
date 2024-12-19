@@ -103,9 +103,9 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (assignTo, dateString, locationId) => {
-    const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ? AND ap_location = ?`; // Updated query to use dateString
-    return getRows(query, [dateString, assignTo, locationId]); // Pass dateString as the first parameter
+exports.getAppointmentsByDate = async (assignTo, dateString) => {
+    const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`;
+    return getRows(query, [dateString, assignTo]);
 };
 
 exports.findOneByApId = async (apId) => {
@@ -370,6 +370,16 @@ exports.updateAppointmentStar = async (appid, starRate) => {
 exports.getTodayAppointments = async (userId, locationId) => {
     const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = CURDATE() AND user_id = ? AND ap_location = ?`;
     return getRows(query, [userId, locationId]);
+};
+
+exports.getTomorrowsAppointments = async (assignTo) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1); // Increment the date by 1 to get tomorrow's date
+    const dateString = tomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+
+    const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`; // Updated query to use assign_to
+    return getRows(query, [dateString, assignTo]); // Pass dateString and assignTo as parameters
 };
 
 

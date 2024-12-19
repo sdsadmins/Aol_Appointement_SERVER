@@ -553,33 +553,32 @@ exports.getTodayAppointments = async (req, res, next) => {
 	}
 };
 
-exports.getTomorrowsAppointments = async (req, res, next) => {
-	try {
-		const today = new Date();
-		const tomorrow = new Date(today);
-		tomorrow.setDate(today.getDate() + 1); // Increment the date by 1 to get tomorrow's date
-		const dateString = tomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+exports.getTomorrowsAppointmentsData = async (req, res, next) => {
+	console.log("kkkkk")
+    try {
+        const assignTo = req.params.assign_to; // Extract assign_to from the route parameter
+        const locationId = req.params.location_id; // Extract location_id from the route parameter
 
-		console.log('Fetching appointments for date:', dateString); // Log the date being fetched
+        // Calculate tomorrow's date
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1); // Increment the date by 1 to get tomorrow's date
+        const dateString = tomorrow.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
 
-		const location = req.params.location; // Extract location from URL parameters
-		const userId = req.params.user_id; // Extract user ID from URL parameters
+        // Call the model method with assignTo, dateString, and locationId
+        const data = await model.getAppointmentsByDate(assignTo, dateString, locationId);
 
-		console.log('Fetching appointments for date:', dateString, 'for user:', userId, 'at location:', location); // Debugging line
-
-		const allowedStatuses = ['Scheduled', 'TB R/S', 'Done', 'SB', 'GK']; // Define allowed statuses
-		const data = await model.getAppointmentsByDate(userId, dateString, allowedStatuses); // Pass user ID, date, and allowed statuses to the model
-
-		if (data && data.length > 0) {
-			res.status(StatusCodes.OK).send(data);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for tomorrow." });
-		}
-	} catch (e) {
-		console.log(`Error in getTomorrowsAppointments`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send(data);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for tomorrow." });
+        }
+    } catch (e) {
+        console.log(`Error in getTomorrowsAppointments`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
+
 
 exports.restoreAppointment = async (req, res, next) => {
 	try {
