@@ -327,7 +327,7 @@ exports.countDeletedAppointments = async () => {
 
 exports.updateAssignToFill = async (ap_id, name) => {
     console.log("Updating assign_to for ap_id:", ap_id, "with name:", name); // Log the parameters
-    const query = `UPDATE appointment_request SET assign_to = ? WHERE ap_id = ?`; // Ensure this updates assign_to
+    const query = `UPDATE appointment_request SET assign_to = ? WHERE ap_id = ?`; // Update assign_to instead of assign_to_fill
     const result = await updateRow(query, [name, ap_id]);
     
     console.log("Update Result:", result); // Log the result of the updateRow call
