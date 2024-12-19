@@ -1147,131 +1147,232 @@ exports.markMultipleAsDeleted = async (req, res, next) => {
 };
 
 // Divya --added on 11 Dec 2024
+// exports.schedule_appointment = async (req, res, next) => {
+//     const { appid, admin_user_id, ap_date, ap_time, meet_type, venue, to_be_opt, stopsendemailmessage, send_vds, stay_avail } = req.body;
+
+//     // Get Appointment Data By ID
+//     const app_data = await model.findOneById(appid);
+
+//     // Get Logged in User data
+//     const sec_data = await adminUserModel.findOne(admin_user_id);
+//     let secretary_user_location = sec_data[0].user_location;
+//     let secretary_user_name = sec_data[0].full_name;
+//     let extra_sign = sec_data[0].extra_sign;
+
+//     let ap_location = app_data[0].ap_location;
+
+//     // Conditional QR Code Generation
+//     let qrCodeData;
+//     if (ap_location === 1) {
+//         qrCodeData = venue;  // Use venue for QR code if ap_location is 1
+//     } else {
+//         qrCodeData = app_data[0].id.toString();  // Use appid for QR code otherwise
+//     }
+//     const qrCodeImage = await generateQRCode(qrCodeData); // Generate QR code
+
+//     let ap_status = app_data[0].ap_status;
+//     let logaptStatus = ap_status;
+//     let approve_status = "";
+//     let rescheduled_app = "";
+
+//     // Determine the approval status based on ap_status
+//     if(ap_status == "Scheduled"){
+//         rescheduled_app = "Rescheduled";
+//     }else if(ap_status == "Pending"){
+//         rescheduled_app = "Scheduled";
+//     }else if(ap_status=="TB R/S"){
+//         rescheduled_app = "Rescheduled";
+//     }else if(ap_status == "SB"){
+//         rescheduled_app = "Rescheduled";
+//     } else if(ap_status == "GK"){
+//         rescheduled_app = "Rescheduled";
+//     } else if(ap_status == "PB"){
+//         rescheduled_app = "Rescheduled";
+//     } else{
+//         rescheduled_app = null;
+//     }
+
+//     if(ap_date && ap_time){
+//         approve_status = "Scheduled";
+//         logaptStatus = "Scheduled";
+//     }
+
+//     if(ap_date && ap_time && ap_status == "SB"){
+//         approve_status = "SB";
+//         logaptStatus = "Rescheduled";
+//     }
+
+//     if(ap_date && ap_time && ap_status == "GK"){
+//         approve_status = "GK";
+//         logaptStatus = "Rescheduled";
+//     }
+
+//     if(ap_date && ap_time && ap_status == "PB"){
+//         approve_status = "PB";
+//         logaptStatus = "Rescheduled";
+//     }
+
+//     if(to_be_opt){
+//         approve_status = "TB R/S";
+//         logaptStatus = "Rescheduled";
+//     }
+
+//     if(rescheduled_app == "Rescheduled"){
+//         logaptStatus = "Rescheduled";
+//     }
+
+//     let date_time = '';
+//     if (ap_date && ap_time) {
+//         date_time = `${ap_date} ${ap_time}`;
+//     }
+
+//     const data = {
+//         ap_status: approve_status || null, // Using `|| null` for undefined fallback
+//         ap_date: ap_date,
+//         app_visit: venue, 
+//         mtype: meet_type,
+//         deleted_app: '0',
+//         slotted_by: admin_user_id
+//     };
+
+//     if(stay_avail){
+//         data.stay_avail = "Yes";
+//     } else {
+//         data.stay_avail = "";
+//     }
+
+//     if (ap_time !== '') {
+//         data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
+//     }
+
+//     if(rescheduled_app == "Rescheduled"){
+//         data.admit_status = "";
+//         data.admitted_by = "0";
+//     }
+
+//     const result = await model.update(app_data[0].id, data);
+
+//     if (result && !_.isEmpty(result)) {
+//         const apt_his_data = {
+//             ap_id: "",
+//             ap_date: ap_date,
+//             mtype: meet_type,
+//             app_visit: venue, 
+//             ap_status: logaptStatus, 
+//             slotted_by: admin_user_id
+//         };
+//         if (ap_time !== '') {
+//             apt_his_data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
+//         }
+
+//         // Send Email and SMS logic continues...
+
+//         res.status(StatusCodes.OK).send({ message: 'Appointment scheduled successfully.', qrCodeImage });
+//     } else {
+//         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Failed to schedule appointment !' });
+//     }
+// };
+
 exports.schedule_appointment = async (req, res, next) => {
     const { appid, admin_user_id, ap_date, ap_time, meet_type, venue, to_be_opt, stopsendemailmessage, send_vds, stay_avail } = req.body;
 
-    // Get Appointment Data By ID
-    const app_data = await model.findOneById(appid);
+    try {
+        // Fetch appointment and user data
+        const app_data = await model.findOneById(appid);
+        const sec_data = await adminUserModel.findOne(admin_user_id);
 
-    // Get Logged in User data
-    const sec_data = await adminUserModel.findOne(admin_user_id);
-    let secretary_user_location = sec_data[0].user_location;
-    let secretary_user_name = sec_data[0].full_name;
-    let extra_sign = sec_data[0].extra_sign;
+        const secretary_user_name = sec_data[0].full_name;
 
-    let ap_location = app_data[0].ap_location;
+        let ap_location = app_data[0].ap_location;
 
-    // Conditional QR Code Generation
-    let qrCodeData;
-    if (ap_location === 1) {
-        qrCodeData = venue;  // Use venue for QR code if ap_location is 1
-    } else {
-        qrCodeData = app_data[0].id.toString();  // Use appid for QR code otherwise
-    }
-    const qrCodeImage = await generateQRCode(qrCodeData); // Generate QR code
+        // Generate QR Code
+        let qrCodeData = ap_location === 1 ? venue : app_data[0].id.toString();
+        const qrCodeImage = await generateQRCode(qrCodeData); // Generate QR code
 
-    let ap_status = app_data[0].ap_status;
-    let logaptStatus = ap_status;
-    let approve_status = "";
-    let rescheduled_app = "";
+        let ap_status = app_data[0].ap_status;
+        let approve_status = "Scheduled";
 
-    // Determine the approval status based on ap_status
-    if(ap_status == "Scheduled"){
-        rescheduled_app = "Rescheduled";
-    }else if(ap_status == "Pending"){
-        rescheduled_app = "Scheduled";
-    }else if(ap_status=="TB R/S"){
-        rescheduled_app = "Rescheduled";
-    }else if(ap_status == "SB"){
-        rescheduled_app = "Rescheduled";
-    } else if(ap_status == "GK"){
-        rescheduled_app = "Rescheduled";
-    } else if(ap_status == "PB"){
-        rescheduled_app = "Rescheduled";
-    } else{
-        rescheduled_app = null;
-    }
-
-    if(ap_date && ap_time){
-        approve_status = "Scheduled";
-        logaptStatus = "Scheduled";
-    }
-
-    if(ap_date && ap_time && ap_status == "SB"){
-        approve_status = "SB";
-        logaptStatus = "Rescheduled";
-    }
-
-    if(ap_date && ap_time && ap_status == "GK"){
-        approve_status = "GK";
-        logaptStatus = "Rescheduled";
-    }
-
-    if(ap_date && ap_time && ap_status == "PB"){
-        approve_status = "PB";
-        logaptStatus = "Rescheduled";
-    }
-
-    if(to_be_opt){
-        approve_status = "TB R/S";
-        logaptStatus = "Rescheduled";
-    }
-
-    if(rescheduled_app == "Rescheduled"){
-        logaptStatus = "Rescheduled";
-    }
-
-    let date_time = '';
-    if (ap_date && ap_time) {
-        date_time = `${ap_date} ${ap_time}`;
-    }
-
-    const data = {
-        ap_status: approve_status || null, // Using `|| null` for undefined fallback
-        ap_date: ap_date,
-        app_visit: venue, 
-        mtype: meet_type,
-        deleted_app: '0',
-        slotted_by: admin_user_id
-    };
-
-    if(stay_avail){
-        data.stay_avail = "Yes";
-    } else {
-        data.stay_avail = "";
-    }
-
-    if (ap_time !== '') {
-        data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
-    }
-
-    if(rescheduled_app == "Rescheduled"){
-        data.admit_status = "";
-        data.admitted_by = "0";
-    }
-
-    const result = await model.update(app_data[0].id, data);
-
-    if (result && !_.isEmpty(result)) {
-        const apt_his_data = {
-            ap_id: "",
+        // Prepare data for the database
+        const data = {
+            ap_status: approve_status,
             ap_date: ap_date,
+            app_visit: venue,
             mtype: meet_type,
-            app_visit: venue, 
-            ap_status: logaptStatus, 
-            slotted_by: admin_user_id
+            deleted_app: '0',
+            slotted_by: admin_user_id,
+            stay_avail: stay_avail ? "Yes" : ""
         };
-        if (ap_time !== '') {
-            apt_his_data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
+
+        const result = await model.update(app_data[0].id, data);
+
+        if (result && !_.isEmpty(result)) {
+            // Send email
+            const emailSent = await sendAppointmentEmail(sec_data[0].email, {
+                secretary_user_name,
+                ap_date,
+                ap_time,
+                meet_type,
+                venue,
+                qrCodeImage
+            });
+
+            if (emailSent) {
+                res.status(StatusCodes.OK).send({ message: 'Appointment scheduled successfully. Email sent.', qrCodeImage });
+            } else {
+                res.status(StatusCodes.OK).send({ message: 'Appointment scheduled successfully, but email failed.', qrCodeImage });
+            }
+        } else {
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Failed to schedule appointment!' });
         }
-
-        // Send Email and SMS logic continues...
-
-        res.status(StatusCodes.OK).send({ message: 'Appointment scheduled successfully.', qrCodeImage });
-    } else {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Failed to schedule appointment !' });
+    } catch (error) {
+        console.error('Error in schedule_appointment:', error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Internal server error.' });
     }
 };
+
+// Helper function to generate QR Code
+async function generateQRCode(data) {
+    const QRCode = require('qrcode');
+    try {
+        return await QRCode.toDataURL(data);
+    } catch (err) {
+        console.error('Failed to generate QR code', err);
+        return null;
+    }
+}
+
+// Helper function to send email
+async function sendAppointmentEmail(to, { secretary_user_name, ap_date, ap_time, meet_type, venue, qrCodeImage }) {
+    try {
+        const mailOptions = {
+            from: '"Your Company" <your-email@example.com>', // Sender address
+            //to: to,
+			to : 'alvita.work@gmail.com' ,// Recipient address
+            subject: 'Appointment Scheduled', // Subject
+            html: `
+                <h1>Appointment Scheduled</h1>
+                <p>Dear ${secretary_user_name},</p>
+                <p>Your appointment has been scheduled successfully. Below are the details:</p>
+                <ul>
+                    <li><strong>Date:</strong> ${ap_date}</li>
+                    <li><strong>Time:</strong> ${ap_time}</li>
+                    <li><strong>Meeting Type:</strong> ${meet_type}</li>
+                    <li><strong>Venue:</strong> ${venue}</li>
+                </ul>
+                <p>Please find the QR Code below:</p>
+                <img src="${qrCodeImage}" alt="QR Code" />
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Email sent: %s', info.messageId);
+        return true;
+    } catch (error) {
+        console.error('Error sending email:', error);
+        return false;
+    }
+}
+
 
 // Helper function to generate QR Code
 async function generateQRCode(data) {
