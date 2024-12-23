@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const {StatusCodes} = require('http-status-codes');
 const model = require("../models/appointment_location");
+const adminUserModel = require("../models/admin_users");
 const {getPageNo, getPageSize} = require('../utils/helper');
 
 exports.getAll = async (req, res, next) => {
@@ -142,3 +143,35 @@ exports.getTodayAppointments = async (req, res, next) => {
 };
 
 
+exports.getAppointmentLocation = async (req, res, next) => {
+	try {
+		const { user_id } = req.params; // Extract user_id from the route parameter
+
+		// Call the model method to get admin user data
+		const adminUser = await adminUserModel.findOne(user_id);
+		// console.log("Inbox Controller",adminUser);
+		// console.log("location access",data[0].show_appts_of);
+
+		let locData = [];
+		if(adminUser[0].show_appts_of == 'All'){
+			locData = [{ id: "", location_name: adminUser[0].show_appts_of }];
+		} else {
+			const locArr = adminUser[0].show_appts_of.split(",");
+			// console.log("locArr",locArr);
+			// SELECT * FROM `appointment_location` WHERE status='1' AND id IN (2,4,9,10,11,12,13,16,17,18,19,20,21,14) ORDER BY location_name;
+			locData = await model.getFilteredLocations(locArr);
+			// console.log("data",locData);
+		}
+
+		// console.log("locData",locData);
+
+		if (!_.isEmpty(locData)) {
+			res.status(StatusCodes.OK).send(locData);
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for the specified location." });
+		}
+	} catch (e) {
+		console.log(`Error in getAppointmentsByLocation`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
