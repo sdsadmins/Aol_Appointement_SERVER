@@ -8,6 +8,18 @@ exports.find = async (offset, pageSize) => {
     return getRows(query,[offset,pageSize]);
 }
 
+// Divya --added on 23 Dec 2024
+exports.getFilteredLocations = async (locids) => {
+    // console.log("locids",locids);
+    const status = "1";
+    const query = `SELECT * 
+    FROM appointment_location 
+    WHERE status = ? 
+    AND id IN (${locids.map(() => '?').join(', ')}) 
+    ORDER BY location_name`;
+    return getRows(query, [status, ...locids]);
+}
+
 exports.findOne = async (id) => {
     const query = `SELECT t.id, t.location_name, t.location_sname, t.status, t.Con, t.cc FROM appointment_location as t WHERE t.id = ? `;
     return getRows(query,[id]);
