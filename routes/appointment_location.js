@@ -14,5 +14,7 @@ router.patch('/:id', checkAuth, controller.update);
 router.delete('/:id', checkAuth, controller.remove);
 router.get('/search/:searchKey', checkAuth, controller.search);
 router.get('/todayAppointments/:user_id/:location_id', checkAuth, controller.getTodayAppointments);
+// added on 23 Dec 2024
+router.get('/getAppointmentLocation/:user_id', checkAuth, controller.getAppointmentLocation);
 
 module.exports = router;
