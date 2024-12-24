@@ -382,6 +382,7 @@ exports.getTomorrowsAppointments = async (assignTo) => {
     return getRows(query, [dateString, assignTo]); // Pass dateString and assignTo as parameters
 };
 
+// Divya --added on 23 Dec 2024
 exports.getInboxAppointments = async (location, limit, offset) => {
     // console.log("Inbox model",location,limit,offset);
 
@@ -428,6 +429,51 @@ exports.getInboxAppointments = async (location, limit, offset) => {
     params.push(limit, offset);
 
     // Execute query
-    // return db.query(query, params);
+    return getRows(query, params);
+}
+
+// Divya --added on 24 Dec 2024
+exports.getAssignedAppointments = async (userid, role, location, limit, offset) => {
+    console.log("Assigned model",userid,role,location,limit,offset);
+
+    const main_location = "1";
+    const allowedUSLocations = ['2', '4', '9', '10', '11', '12', '13']; // Define US locations
+
+    // Base query
+    let query = `
+        SELECT * 
+        FROM appointment_request 
+        WHERE ap_status = ? 
+        AND darshan_line = '' 
+        AND backstage_status = '' 
+        AND deleted_app = ? 
+    `;
+
+    const params = ['Pending', '0']; // Base parameters
+
+    // Apply location conditions
+    if (main_location === location) {
+        query += `AND ap_location IS NOT NULL `;
+    } else {
+        if (allowedUSLocations.includes(location)) {
+            query += `AND ap_location IN (${allowedUSLocations.map(() => '?').join(', ')}) `;
+            params.push(...allowedUSLocations);
+        } else {
+            query += `AND ap_location = ? `;
+            params.push(location);
+        }
+    }
+
+    // Apply role condition
+    if (role === "secretary") {
+        query += `AND assign_to = ? `;
+        params.push(userid);
+    }
+
+    // Add ordering and pagination
+    query += `ORDER BY id DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    // Execute query
     return getRows(query, params);
 }
