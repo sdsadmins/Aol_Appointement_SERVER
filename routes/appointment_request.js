@@ -30,7 +30,10 @@ router.get('/getAppointmentTomorrow/:assign_to/:location_id', checkAuth, control
 router.get('/todayAppointments/:assign_to/:location_id/:date', checkAuth, controller.getTodayAppointments);
 router.get('/upcomingAppointmentsByDate/:date', checkAuth, controller.getUpcomingAppointmentsByDate);
 router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCount);
+
 router.get('/appointmentsByLocation/:location_id', checkAuth, controller.getAppointmentsByLocation);
+router.post('/getInboxData', checkAuth, controller.getInboxData);   // Divya --added on 24 Dec 2024
+
 router.get('/appointment/:id', checkAuth, controller.getAppointmentById);
 router.post('/send-more-info-email', checkAuth, controller.sendMoreInfoEmail);
 router.get('/get-starred-appointment-details', checkAuth, controller.getStarredAppointmentDetails);
