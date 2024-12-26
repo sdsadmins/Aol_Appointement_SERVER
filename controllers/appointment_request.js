@@ -607,20 +607,21 @@ exports.restoreAppointment = async (req, res, next) => {
 
 exports.deleteAppointment = async (req, res, next) => {
 	try {
-		const { appid } = req.body; // Extract appid from the request body
-		const { sendEmail, radioreason, page } = req.body; // Extract additional parameters from the request body
+		const id = req.params.id; // Extract id from the route parameter
 
-		// Ensure appid is provided
-		if (!appid) {
-			return res.status(StatusCodes.BAD_REQUEST).send({ message: "App ID is required" });
+		// Ensure id is provided
+		if (!id) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
 		}
 
-		// Change the status to 1 instead of deleting the appointment
-		const data = await model.updateAppointmentStatus(appid, '1'); // Update status to 1
-		const updateDeletedApp = await model.updateDeletedApp(appid, '1'); // Set deleted_app to '1'
-		// Ensure the update was successful
-		if (updateDeletedApp) {
-			res.status(StatusCodes.OK).send({ message: "Appointment status updated to 1 successfully", sendEmail, radioreason, page }); // Include additional parameters in the response
+		// Call the model method to update the deleted_app field
+		const data = await model.remove(id); // This will now update deleted_app to 1
+
+		if (data) {
+			res.status(StatusCodes.OK).send({
+				message: "Appointment marked as deleted successfully",
+				data: { id, deleted_app: 1 } // Send the ID and the updated status
+			});
 		} else {
 			res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
 		}

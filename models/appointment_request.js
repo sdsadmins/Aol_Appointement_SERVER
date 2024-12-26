@@ -63,8 +63,8 @@ exports.update = async (id, object) => {
 }
 
 exports.remove = async (id) => {
-    const query = `DELETE from appointment_request WHERE ap_id = ?`;
-    return deleteRow(query, [id]);
+    const query = `UPDATE appointment_request SET deleted_app = 1 WHERE id = ?`;
+    return updateRow(query, [id]);
 }
 
 exports.count = async () => {
