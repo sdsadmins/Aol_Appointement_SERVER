@@ -33,7 +33,7 @@ router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCo
 
 router.get('/appointmentsByLocation/:location_id', checkAuth, controller.getAppointmentsByLocation);
 router.post('/getInboxData', checkAuth, controller.getInboxData);   // Divya --added on 23 Dec 2024
-router.get('/getAssignedToMeData', checkAuth, controller.getAssignedToMeData);   // Divya --added on 24 Dec 2024
+router.post('/getAssignedToMeData', checkAuth, controller.getAssignedToMeData);   // Divya --added on 24 Dec 2024
 
 
 router.get('/appointment/:id', checkAuth, controller.getAppointmentById);
