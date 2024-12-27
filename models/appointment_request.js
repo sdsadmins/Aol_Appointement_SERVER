@@ -409,6 +409,7 @@ exports.getInboxAppointments = async (location, limit, offset) => {
     if (main_location === location) {
         query += `AND ap_location = ? `;
         params.push(location);
+
     } else {
         if (allowedUSLocations.includes(location)) {
         if (role === 'gurudev') {
@@ -433,8 +434,53 @@ exports.getInboxAppointments = async (location, limit, offset) => {
 }
 
 // Divya --added on 24 Dec 2024
-exports.getAssignedAppointments = async (userid, role, location, limit, offset) => {
-    console.log("Assigned model",userid,role,location,limit,offset);
+// exports.getAssignedAppointments = async (userid, role, location, limit, offset) => {
+//     console.log("Assigned model",userid,role,location,limit,offset);
+
+//     const main_location = "1";
+//     const allowedUSLocations = ['2', '4', '9', '10', '11', '12', '13']; // Define US locations
+
+//     // Base query
+//     let query = `
+//         SELECT * 
+//         FROM appointment_request 
+//         WHERE ap_status = ? 
+//         AND darshan_line = '' 
+//         AND backstage_status = '' 
+//         AND deleted_app = ? 
+//     `;
+
+//     const params = ['Pending', '0']; // Base parameters
+
+//     // Apply location conditions
+//     if (main_location === location) {
+//         query += `AND ap_location IS NOT NULL `;
+//     } else {
+//         if (allowedUSLocations.includes(location)) {
+//             query += `AND ap_location IN (${allowedUSLocations.map(() => '?').join(', ')}) `;
+//             params.push(...allowedUSLocations);
+//         } else {
+//             query += `AND ap_location = ? `;
+//             params.push(location);
+//         }
+//     }
+
+//     // Apply role condition
+//     if (role === "secretary") {
+//         query += `AND assign_to = ? `;
+//         params.push(userid);
+//     }
+
+//     // Add ordering and pagination
+//     query += `ORDER BY id DESC LIMIT ? OFFSET ?`;
+//     params.push(limit, offset);
+
+//     // Execute query
+//     return getRows(query, params);
+// }
+
+exports.getAssignedAppointments = async (assignTo, location, limit, offset) => {
+    console.log("Assigned model - Parameters:", assignTo, location, limit, offset);
 
     const main_location = "1";
     const allowedUSLocations = ['2', '4', '9', '10', '11', '12', '13']; // Define US locations
@@ -457,23 +503,32 @@ exports.getAssignedAppointments = async (userid, role, location, limit, offset) 
     } else {
         if (allowedUSLocations.includes(location)) {
             query += `AND ap_location IN (${allowedUSLocations.map(() => '?').join(', ')}) `;
-            params.push(...allowedUSLocations);
+            params.push(...allowedUSLocations);  // Adds each allowed location as a parameter
         } else {
             query += `AND ap_location = ? `;
-            params.push(location);
+            params.push(location);  // Filter by specific location if not in allowed locations
         }
     }
 
-    // Apply role condition
-    if (role === "secretary") {
-        query += `AND assign_to = ? `;
-        params.push(userid);
-    }
+    // Apply the assign_to condition
+    query += `AND assign_to = ? `;
+    params.push(assignTo);  // Fetch appointments assigned to the provided assign_to ID
 
     // Add ordering and pagination
     query += `ORDER BY id DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
-    // Execute query
-    return getRows(query, params);
+    // Log the final query and parameters for debugging
+    console.log("Final Query:", query);
+    console.log("Parameters:", params);
+
+    try {
+        // Execute query
+        const rows = await getRows(query, params);  // Assuming getRows is your DB function
+        console.log("Query Results:", rows);
+        return rows;
+    } catch (error) {
+        console.error("Error executing query:", error);
+        throw new Error("Database query failed.");
+    }
 }
