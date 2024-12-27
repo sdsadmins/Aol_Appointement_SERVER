@@ -194,11 +194,13 @@ exports.getUserAppointments = async (req, res, next) => {
 
         // Fetch appointments and count
         const { appointments, totalCount } = await model.find(userId, offset, pageSize);  // Pass userId to the find function
+        const appointmentCountByDate = await model.getUserAppointmentsCountByDate(userId); // Get count by ap_date
 
         if (!_.isEmpty(appointments)) {
             res.status(StatusCodes.OK).send({
                 totalCount: totalCount,
-                appointments: appointments
+                appointments: appointments,
+                appointmentCountByDate: appointmentCountByDate // Include the count in the response
             });
         } else {
             res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for this user." });

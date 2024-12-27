@@ -563,3 +563,13 @@ exports.getAssignedAppointments = async (assignTo, location, limit, offset) => {
         throw new Error("Database query failed.");
     }
 }
+
+exports.getUserAppointmentsCountByDate = async (userId) => {
+    const query = `
+        SELECT ap_date, COUNT(*) AS appointment_count 
+        FROM appointment_request 
+        WHERE user_id = ? 
+        GROUP BY ap_date
+    `;
+    return getRows(query, [userId]);
+};
