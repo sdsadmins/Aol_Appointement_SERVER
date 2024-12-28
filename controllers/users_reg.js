@@ -53,36 +53,52 @@ const upload = multer({
 // });
 
 exports.register = async (req, res) => {
-    console.log("Register function triggered");
-    const userData = req.body;
+    console.log("Middleware triggered");
 
-    // Check if email already exists
-    const existingUser = await model.findOneByEmail(userData.email_id);
-    if (existingUser && existingUser.length > 0) {
-        return res.status(400).send({ message: "This email ID is already registered." });
-    }
+    // Use the multer middleware before proceeding with registration
+    // upload(req, res, async (err) => {
+        upload(req, res, async (err) => {
+            if (err) {
+              console.log("Error during file upload:", err);
+              return res.status(500).json({
+                message: "Invalid file format. Only JPEG/JPG images are allowed",
+                error: err,
+              });
+            }
 
-    try {
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
-        const userDataToSave = {
-            ...userData,
-            password: hashedPassword,
-        };
+        console.log("Request Body:", req.body);
+        console.log("Request File:", req.file);
 
-        const data = await model.insert(userDataToSave);
-        if (data) {
-            return res.status(201).send({
-                message: 'User registered successfully',
-                data: data
-            });
-        } else {
-            return res.status(400).send({ message: "Registration failed" });
+        try {
+            if (!req.file) {
+                return res.status(400).send({ message: 'Photo is required' });
+            }
+
+            const userData = req.body;
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+
+            const userDataToSave = {
+                ...userData,
+                password: hashedPassword,
+                photo: req.file.filename // Store the filename of the uploaded photo
+            };
+
+            const data = await model.insert(userDataToSave);
+
+            if (data) {
+                return res.status(201).send({
+                    message: 'User registered successfully',
+                    data: data
+                });
+            } else {
+                return res.status(400).send({ message: "Registration failed" });
+            }
+        } catch (error) {
+            console.error('Error in register:', error);
+            return res.status(500).send({ message: error.message });
         }
-    } catch (error) {
-        console.error('Error in register:', error);
-        return res.status(500).send({ message: error.message });
-    }
+    });
 };
 
 
