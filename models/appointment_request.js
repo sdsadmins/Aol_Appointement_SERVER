@@ -2,6 +2,7 @@ const { getRows, insertRow, updateRow, deleteRow } = require('../database/query'
 const SqlString = require('sqlstring');
 const validationDto = require('../dto/appointment_request.dto');
 const _ = require('lodash');
+const moment = require('moment-timezone');
  // Ensure this path is correct
 
 // exports.find = async (offset, pageSize) => {
@@ -9,8 +10,7 @@ const _ = require('lodash');
 //     return getRows(query,[offset,pageSize]);
 // }
 
-exports.find = async (userId, offset, pageSize) => {
-    // Query to get the appointments based on the userId, with pagination
+exports.find = async (assignToId, offset, pageSize) => {
     const query = `
         SELECT t.id, t.ap_id, t.user_id, t.for_ap, t.full_name, t.email_id, t.country_code, t.mobile_no, 
             t.ref_name, t.ref_country_code, t.ref_mobile_no, t.ref_email_id, t.ap_location, t.app_visit, 
@@ -25,27 +25,34 @@ exports.find = async (userId, offset, pageSize) => {
             t.no_people_numbers, t.no_people_eleven_details, t.send_schedule, t.arrival_time, t.schedule_date, 
             t.schedule_time, t.schedule_send_status, t.stay_avail
         FROM appointment_request as t
-        WHERE t.user_id = ? 
+        WHERE t.assign_to = ? 
         ORDER BY t.ap_date DESC
         LIMIT ?, ?`;
 
-    // Query to count the total number of appointments based on userId and ap_date
     const countQuery = `
         SELECT COUNT(*) AS totalCount
         FROM appointment_request as t
-        WHERE t.user_id = ?`;
+        WHERE t.assign_to = ?`;
 
-    // Execute both queries
     const [appointments, countResult] = await Promise.all([
-        getRows(query, [userId, offset, pageSize]),
-        getRows(countQuery, [userId])
+        getRows(query, [assignToId, offset, pageSize]),
+        getRows(countQuery, [assignToId]),
     ]);
 
-    // Extract total count from the result
     const totalCount = countResult && countResult[0] ? countResult[0].totalCount : 0;
 
-    // Return appointments and total count
-    return { appointments, totalCount };
+    // Define your desired timezone
+    const timezone = 'Asia/Kolkata'; // Replace with the desired timezone
+
+    // Convert `ap_date` to local timezone
+    const adjustedAppointments = appointments.map((appointment) => {
+        return {
+            ...appointment,
+            ap_date: moment(appointment.ap_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'), // Convert to local timezone
+        };
+    });
+
+    return { appointments: adjustedAppointments, totalCount };
 };
 
 
@@ -571,7 +578,14 @@ exports.getUserAppointmentsCountByDate = async (assignToId) => {
         WHERE assign_to = ? 
         GROUP BY ap_date
     `;
-    return getRows(query, [assignToId]);
+
+    const timezone = 'Asia/Kolkata'; // Replace with the desired timezone
+    const result = await getRows(query, [assignToId]);
+
+    return result.map((row) => ({
+        ap_date: moment(row.ap_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
+        appointment_count: row.appointment_count,
+    }));
 };
 
 // Divya --added on 28 Dec 2024

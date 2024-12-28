@@ -76,9 +76,9 @@ exports.register = async (req, res) => {
             const userData = req.body;
 
             // Check if email already exists
-            const emailAlreadyExists = await model.emailExists(userData.email);
+            const emailAlreadyExists = await model.emailExists(userData.email_id);
             if (emailAlreadyExists) {
-                return res.status(409).send({ message: "Email ID is already registered with us" });
+                return res.status(500).send({ message: "Email ID is already registered." });
             }
 
             const saltRounds = 10;
