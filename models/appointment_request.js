@@ -573,3 +573,51 @@ exports.getUserAppointmentsCountByDate = async (assignToId) => {
     `;
     return getRows(query, [assignToId]);
 };
+
+// Divya --added on 28 Dec 2024
+exports.getndateAppointments = async (user_id, show_appts_of, location, datestring) => {
+    // console.log("ndate model - Parameters:", user_id, show_appts_of, location, datestring);
+
+    const params = [];
+    const main_location = "1";
+    const statusList = ['Scheduled','TB R/S','Done','SB','GK','PB'];
+  
+    // Base query
+    let query = `
+        SELECT * 
+        FROM appointment_request 
+        WHERE deleted_app = ? 
+    `;
+    params.push('0'); // deleted_app is always '0'
+
+    // Location logic
+    if (main_location !== location) {
+        if (show_appts_of !== 'All') {
+            const showApptsOfArray = show_appts_of.split(','); // Convert string to array
+            query += `AND ap_location IN (${showApptsOfArray.map(() => '?').join(', ')}) `;
+            params.push(...showApptsOfArray);
+        }
+    }
+
+    // Add date condition (convert time zones if necessary)
+    // const todayDate = oneTimeZoneToAnother(today, 'Y-m-d', timezone); // Assuming you have a utility for time zone conversion
+    query += `AND ap_date = ? `;
+    params.push(datestring);
+
+    // Add status filter
+    if (statusList && statusList.length > 0) {
+        query += `AND ap_status IN (${statusList.map(() => '?').join(', ')}) `;
+        params.push(...statusList);
+    }
+
+    // Add ordering
+    query += `ORDER BY ap_time ASC`;
+
+    // Debug the final query and params
+    // console.log('Final Query:', query);
+    // console.log('Params:', params);
+
+
+    // Execute query
+    return getRows(query, params);
+}

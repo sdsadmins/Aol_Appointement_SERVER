@@ -27,7 +27,10 @@ router.post('/more_info_appointment/:user_id', checkAuth, controller.moreInfoApp
 router.get('/restore_appointment/:ap_id', checkAuth, controller.restoreAppointment);
 router.delete('/deleteAppointment/:id', checkAuth, controller.deleteAppointment);
 router.get('/getAppointmentTomorrow/:assign_to/:location_id', checkAuth, controller.getTomorrowsAppointmentsData);
+
 router.get('/todayAppointments/:assign_to/:location_id/:date', checkAuth, controller.getTodayAppointments);
+router.get('/getndateAppointments/:user_id/:datestring', checkAuth, controller.getndateAppointments);  // Divya --added on 28 Dec 2024
+
 router.get('/upcomingAppointmentsByDate/:date', checkAuth, controller.getUpcomingAppointmentsByDate);
 router.post('/get_right_nav_count/:user_id', checkAuth, controller.getRightNavCount);
 
