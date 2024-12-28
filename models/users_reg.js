@@ -25,6 +25,14 @@ exports.insert = async (object) => {
     
 }
 
+
+exports.emailExists = async (email) => {
+    const query = `SELECT id FROM users_reg WHERE email = ? LIMIT 1`;
+    const results = await getRows(query, [email]);
+    return results.length > 0;  // Returns true if any record exists
+};
+
+
 exports.update = async (id, object) => {
     const updateKeys = [];
     let updateValues = [];
