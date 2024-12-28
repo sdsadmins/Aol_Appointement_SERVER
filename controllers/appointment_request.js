@@ -187,23 +187,31 @@ exports.search = async (req, res, next) => {
 };
 
 exports.getUserAppointments = async (req, res, next) => {
-	try {
-		const userId = req.params.user_id;  // Extract user_id from the route parameter
-		const offset = 0; // Set your offset for pagination
-		const pageSize = 50; // Set your page size for pagination
+    try {
+        const assignToId = req.params.assign_to;  // Extract assign_to from the route parameter
+        const offset = 0; // Set your offset for pagination
+        const pageSize = 50; // Set your page size for pagination
 
-		const data = await model.find(userId, offset, pageSize);  // Pass userId to the find function
+        // Fetch appointments and count using assignToId
+        const { appointments, totalCount } = await model.find(assignToId, offset, pageSize);  // Pass assignToId to the find function
+        const appointmentCountByDate = await model.getUserAppointmentsCountByDate(assignToId); // Get count by ap_date using assignToId
 
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for this user." });
-		}
-	} catch (e) {
-		console.log(`Error in getUserAppointments`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+        if (!_.isEmpty(appointments)) {
+            res.status(StatusCodes.OK).send({
+                totalCount: totalCount,
+                appointments: appointments,
+                appointmentCountByDate: appointmentCountByDate // Include the count in the response
+            });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for this assignee." });
+        }
+    } catch (e) {
+        console.log(`Error in getUserAppointments`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
+
+
 
 exports.getLastSecretary = async (req, res, next) => {
 	try {
@@ -377,23 +385,24 @@ exports.getUserHistory = async (req, res, next) => {
 };
 
 exports.getAppointmentsByDate = async (req, res, next) => {
-	try {
-		const userId = req.params.user_id;
-		const dateString = req.params.datestring;
+    try {
+        const assignTo = req.params.assign_to;  // Using 'assign_to' from the route
+        const dateString = req.params.datestring;
 
-		// Assuming you have a method in your model to get appointments by date
-		const data = await model.getAppointmentsByDate(userId, dateString);
+        // Assuming getAppointmentsByDate is a method in your model to fetch data based on 'assign_to' and 'datestring'
+        const data = await model.getAppointmentsByDate(dateString, assignTo);
 
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for this date." });
-		}
-	} catch (e) {
-		console.log(`Error in getAppointmentsByDate`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+        if (data && data.length > 0) {
+            res.status(200).json(data);
+        } else {
+            res.status(404).json({ message: "No appointments found for this date." });
+        }
+    } catch (e) {
+        console.error(`Error in getAppointmentsByDate: ${e}`);
+        res.status(500).json({ message: e.message });
+    }
 };
+
 
 exports.getSingleAppointmentDetails = async (req, res, next) => {
 	try {

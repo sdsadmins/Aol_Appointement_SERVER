@@ -10,13 +10,44 @@ const _ = require('lodash');
 // }
 
 exports.find = async (userId, offset, pageSize) => {
-    const query = `SELECT t.id, t.ap_id, t.user_id, t.for_ap, t.full_name, t.email_id, t.country_code, t.mobile_no, t.ref_name, t.ref_country_code, t.ref_mobile_no, t.ref_email_id, t.ap_location, t.app_visit, t.city, t.state, t.country, t.designation, t.designationcomp, t.meet_purpose, t.meet_subject, t.no_people, t.no_people_partial, t.from_date, t.to_date, t.tags, t.attachment, t.attachment_url, t.picture, t.secretary_note, t.gurudev_remark, t.assign_to, t.assign_to_fill, t.assigned_by, t.ap_date, t.ap_time, t.star_rate, t.ap_status, t.check_in_status, t.darshan_line, t.backstage_status, t.deleted_app, t.entry_date_time, t.position_order, t.darshan_line_email, t.entry_date, t.mtype, t.zoom_link, t.access_token, t.venue, t.join_url, t.password, t.travelled, t.from_where, t.currently_doing, t.dop, t.selCountry, t.selState, t.selCity, t.toa, t.curr_loc, t.email_status, t.tcode, t.taughtCourses, t.more_info, t.admit_status, t.admitted_by, t.no_people_names, t.no_people_numbers, t.no_people_eleven_details, t.send_schedule, t.arrival_time, t.schedule_date, t.schedule_time, t.schedule_send_status, t.stay_avail 
-                  FROM appointment_request as t
-                  WHERE t.user_id = ? 
-                  LIMIT ?, ?`;
+    // Query to get the appointments based on the userId, with pagination
+    const query = `
+        SELECT t.id, t.ap_id, t.user_id, t.for_ap, t.full_name, t.email_id, t.country_code, t.mobile_no, 
+            t.ref_name, t.ref_country_code, t.ref_mobile_no, t.ref_email_id, t.ap_location, t.app_visit, 
+            t.city, t.state, t.country, t.designation, t.designationcomp, t.meet_purpose, t.meet_subject, 
+            t.no_people, t.no_people_partial, t.from_date, t.to_date, t.tags, t.attachment, t.attachment_url, 
+            t.picture, t.secretary_note, t.gurudev_remark, t.assign_to, t.assign_to_fill, t.assigned_by, 
+            t.ap_date, t.ap_time, t.star_rate, t.ap_status, t.check_in_status, t.darshan_line, t.backstage_status, 
+            t.deleted_app, t.entry_date_time, t.position_order, t.darshan_line_email, t.entry_date, t.mtype, 
+            t.zoom_link, t.access_token, t.venue, t.join_url, t.password, t.travelled, t.from_where, 
+            t.currently_doing, t.dop, t.selCountry, t.selState, t.selCity, t.toa, t.curr_loc, t.email_status, 
+            t.tcode, t.taughtCourses, t.more_info, t.admit_status, t.admitted_by, t.no_people_names, 
+            t.no_people_numbers, t.no_people_eleven_details, t.send_schedule, t.arrival_time, t.schedule_date, 
+            t.schedule_time, t.schedule_send_status, t.stay_avail
+        FROM appointment_request as t
+        WHERE t.user_id = ? 
+        ORDER BY t.ap_date DESC
+        LIMIT ?, ?`;
 
-    return getRows(query, [userId, offset, pageSize]);
+    // Query to count the total number of appointments based on userId and ap_date
+    const countQuery = `
+        SELECT COUNT(*) AS totalCount
+        FROM appointment_request as t
+        WHERE t.user_id = ?`;
+
+    // Execute both queries
+    const [appointments, countResult] = await Promise.all([
+        getRows(query, [userId, offset, pageSize]),
+        getRows(countQuery, [userId])
+    ]);
+
+    // Extract total count from the result
+    const totalCount = countResult && countResult[0] ? countResult[0].totalCount : 0;
+
+    // Return appointments and total count
+    return { appointments, totalCount };
 };
+
 
 // Added updateAppointmentStatus function to handle appointment status updates
 exports.updateAppointmentStatus = async (appid, status) => {
@@ -103,9 +134,9 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (assignTo, dateString) => {
+exports.getAppointmentsByDate = (dateString, assignTo) => {
     const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`;
-    return getRows(query, [dateString, assignTo]);
+    return getRows(query, [dateString, assignTo]);  // Parameters should match the order expected by the query
 };
 
 exports.findOneByApId = async (apId) => {
@@ -532,3 +563,13 @@ exports.getAssignedAppointments = async (assignTo, location, limit, offset) => {
         throw new Error("Database query failed.");
     }
 }
+
+exports.getUserAppointmentsCountByDate = async (assignToId) => {
+    const query = `
+        SELECT ap_date, COUNT(*) AS appointment_count 
+        FROM appointment_request 
+        WHERE assign_to = ? 
+        GROUP BY ap_date
+    `;
+    return getRows(query, [assignToId]);
+};
