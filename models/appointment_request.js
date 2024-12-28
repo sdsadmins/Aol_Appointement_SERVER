@@ -134,9 +134,9 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (assignTo, dateString) => {
+exports.getAppointmentsByDate = (dateString, assignTo) => {
     const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`;
-    return getRows(query, [dateString, assignTo]);
+    return getRows(query, [dateString, assignTo]);  // Parameters should match the order expected by the query
 };
 
 exports.findOneByApId = async (apId) => {
@@ -564,12 +564,12 @@ exports.getAssignedAppointments = async (assignTo, location, limit, offset) => {
     }
 }
 
-exports.getUserAppointmentsCountByDate = async (userId) => {
+exports.getUserAppointmentsCountByDate = async (assignToId) => {
     const query = `
         SELECT ap_date, COUNT(*) AS appointment_count 
         FROM appointment_request 
-        WHERE user_id = ? 
+        WHERE assign_to = ? 
         GROUP BY ap_date
     `;
-    return getRows(query, [userId]);
+    return getRows(query, [assignToId]);
 };

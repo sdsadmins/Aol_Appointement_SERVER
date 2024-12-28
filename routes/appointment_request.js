@@ -14,7 +14,7 @@ const router = express.Router();
 // router.delete('/:id', checkAuth, controller.remove);
 router.post('/appointmentform/:user_id', checkAuth, controller.submitSelfAppointment);
 router.get('/search/:searchKey', checkAuth, controller.search);
-router.get('/usersData/:user_id', checkAuth, controller.getUserAppointments);
+router.get('/usersData/:assign_to', checkAuth, controller.getUserAppointments);
 router.post('/getLastSecretary', checkAuth, controller.getLastSecretary);
 router.post('/appointmentforOther/:user_id', checkAuth, controller.submitGuestAppointment);
 router.get('/usersHistory/:user_id/:email_id', checkAuth, controller.getUserHistory);
@@ -52,6 +52,8 @@ router.post('/change_appointment_star', checkAuth, controller.changeAppointmentS
 
 
 router.post('/schedule_appointment', controller.schedule_appointment);
-router.get('/appointmentsByDate/:assign_to/:date', checkAuth, controller.getAppointmentsByDate);
+router.get('/appointmentsByDate/:assign_to/:datestring', checkAuth, controller.getAppointmentsByDate);
+
+
 
 module.exports = router;
