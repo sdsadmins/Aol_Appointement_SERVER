@@ -55,16 +55,15 @@ const upload = multer({
 exports.register = async (req, res) => {
     console.log("Middleware triggered");
 
-    // Use the multer middleware before proceeding with registration
-    // upload(req, res, async (err) => {
-        upload(req, res, async (err) => {
-            if (err) {
-              console.log("Error during file upload:", err);
-              return res.status(500).json({
+    // Assuming 'upload' is a configured multer instance for handling file uploads
+    upload(req, res, async (err) => {
+        if (err) {
+            console.log("Error during file upload:", err);
+            return res.status(500).json({
                 message: "Invalid file format. Only JPEG/JPG images are allowed",
                 error: err,
-              });
-            }
+            });
+        }
 
         console.log("Request Body:", req.body);
         console.log("Request File:", req.file);
@@ -75,13 +74,20 @@ exports.register = async (req, res) => {
             }
 
             const userData = req.body;
+
+            // Check if email already exists
+            const emailAlreadyExists = await model.emailExists(userData.email);
+            if (emailAlreadyExists) {
+                return res.status(409).send({ message: "Email ID is already registered with us" });
+            }
+
             const saltRounds = 10;
             const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
             const userDataToSave = {
                 ...userData,
                 password: hashedPassword,
-                photo: req.file.filename // Store the filename of the uploaded photo
+                photo: req.file.filename  // Store the filename of the uploaded photo
             };
 
             const data = await model.insert(userDataToSave);
@@ -100,7 +106,6 @@ exports.register = async (req, res) => {
         }
     });
 };
-
 
 
 
