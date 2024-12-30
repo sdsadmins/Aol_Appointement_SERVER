@@ -415,7 +415,8 @@ exports.getSingleAppointmentDetails = async (req, res, next) => {
 		if (!_.isEmpty(data)) {
 			res.status(StatusCodes.OK).send(data[0]); // Send the first result
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+			// res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+			res.status(StatusCodes.OK).send({ message: "No appointment found with this ID." });
 		}
 	} catch (e) {
 		console.log(`Error in getSingleAppointmentDetails`, e);
@@ -1603,7 +1604,8 @@ exports.getInboxData = async (req, res, next) => {
         if (!_.isEmpty(data)) {
             res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
         } else {
-            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
+            // res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
+			res.status(StatusCodes.OK).send({ message: "No appointments found !!" });
         }
     } catch (e) {
         console.error(`Error in getInboxData`, e);
