@@ -26,7 +26,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Add multer storage configuration at the top of the file
 const storage = multer.diskStorage({
-	
+
 	destination: function (req, file, cb) {
 		const uploadDir = path.join(__dirname, '../uploads/appointments');
 		if (!fs.existsSync(uploadDir)) {
@@ -1528,169 +1528,169 @@ exports.changeAppointmentStar = async (req, res, next) => {
 };
 
 
-exports.getInboxData = async (req, res, next) => {
-    try {
-        const { user_id, limit, offset } = req.body;
+// exports.getInboxData = async (req, res, next) => {
+//     try {
+//         const { user_id, limit, offset } = req.body;
 
-        // Validate required input
-        if (!user_id) {
-            return res.status(400).send({ message: 'User ID is required' });
-        }
+//         // Validate required input
+//         if (!user_id) {
+//             return res.status(400).send({ message: 'User ID is required' });
+//         }
 
-        // Fetch admin user details (logged in user)
-        const adminUserData = await adminUserModel.findOne(user_id);
-        if (!adminUserData || adminUserData.length === 0) {
-            return res.status(404).send({ message: 'Admin user not found' });
-        }
-        const user_location = adminUserData[0].user_location;
+//         // Fetch admin user details (logged in user)
+//         const adminUserData = await adminUserModel.findOne(user_id);
+//         if (!adminUserData || adminUserData.length === 0) {
+//             return res.status(404).send({ message: 'Admin user not found' });
+//         }
+//         const user_location = adminUserData[0].user_location;
 
-        const data = await model.getInboxAppointments(user_location, parseInt(limit), parseInt(offset));
+//         const data = await model.getInboxAppointments(user_location, parseInt(limit), parseInt(offset));
 
-        for (const key in data) {
-            const value = data[key];
-            const tuserdata = await userModel.findOne(value.user_id);
-            if (!tuserdata || tuserdata.length === 0) {
-                continue; // Skip this record or handle missing user data appropriately
-            }
+//         for (const key in data) {
+//             const value = data[key];
+//             const tuserdata = await userModel.findOne(value.user_id);
+//             if (!tuserdata || tuserdata.length === 0) {
+//                 continue; // Skip this record or handle missing user data appropriately
+//             }
 
-            // Update the 'toa' field
-            data[key].toa = value.toa !== 'offline' ? 'online' : 'In-Person';
+//             // Update the 'toa' field
+//             data[key].toa = value.toa !== 'offline' ? 'online' : 'In-Person';
 
-            // Extract user data for the current record
-            const userData = tuserdata[0];
+//             // Extract user data for the current record
+//             const userData = tuserdata[0];
 
-            // Handle appointments for 'me' and others
-            if (value.for_ap === 'me') {
-                Object.assign(data[key], {
-                    full_name: userData.full_name || '',
-                    photo: userData.photo || '',
-                    designation: userData.designation || '',
-                    ref_name: value.ref_name,
-                    ref_country_code: value.ref_country_code,
-                    ref_mobile_no: value.ref_mobile_no,
-                    country_code: userData.country_code || '',
-                    phone_no: userData.phone_no || '',
-                    user_full_name: userData.full_name || '',
-                    user_email_id: userData.email_id || ''
-                });
-            } else {
-                Object.assign(data[key], {
-                    full_name: value.full_name,
-                    photo: value.picture,
-                    designation: value.designation,
-                    ref_name: userData.full_name || '',
-                    ref_country_code: userData.country_code || '',
-                    ref_mobile_no: userData.phone_no || '',
-                    country_code: value.country_code,
-                    phone_no: value.mobile_no
-                });
-            }
+//             // Handle appointments for 'me' and others
+//             if (value.for_ap === 'me') {
+//                 Object.assign(data[key], {
+//                     full_name: userData.full_name || '',
+//                     photo: userData.photo || '',
+//                     designation: userData.designation || '',
+//                     ref_name: value.ref_name,
+//                     ref_country_code: value.ref_country_code,
+//                     ref_mobile_no: value.ref_mobile_no,
+//                     country_code: userData.country_code || '',
+//                     phone_no: userData.phone_no || '',
+//                     user_full_name: userData.full_name || '',
+//                     user_email_id: userData.email_id || ''
+//                 });
+//             } else {
+//                 Object.assign(data[key], {
+//                     full_name: value.full_name,
+//                     photo: value.picture,
+//                     designation: value.designation,
+//                     ref_name: userData.full_name || '',
+//                     ref_country_code: userData.country_code || '',
+//                     ref_mobile_no: userData.phone_no || '',
+//                     country_code: value.country_code,
+//                     phone_no: value.mobile_no
+//                 });
+//             }
 
-            // Fetch and assign details for 'assigned to' and 'assigned by' users
-            const assignToData = await adminUserModel.findOne(value.assign_to);
-            const assignedByData = await adminUserModel.findOne(value.assigned_by);
+//             // Fetch and assign details for 'assigned to' and 'assigned by' users
+//             const assignToData = await adminUserModel.findOne(value.assign_to);
+//             const assignedByData = await adminUserModel.findOne(value.assigned_by);
 
-            Object.assign(data[key], {
-                assign_to_full_name: assignToData[0]?.full_name || '',
-                assign_to_email_id: assignToData[0]?.email_id || '',
-                assign_to_sort_name: assignToData[0]?.sort_name || '',
-                assigned_by_full_name: assignedByData[0]?.full_name || '',
-                assigned_by_email_id: assignedByData[0]?.email_id || '',
-                assigned_by_sort_name: assignedByData[0]?.sort_name || ''
-            });
-        }
+//             Object.assign(data[key], {
+//                 assign_to_full_name: assignToData[0]?.full_name || '',
+//                 assign_to_email_id: assignToData[0]?.email_id || '',
+//                 assign_to_sort_name: assignToData[0]?.sort_name || '',
+//                 assigned_by_full_name: assignedByData[0]?.full_name || '',
+//                 assigned_by_email_id: assignedByData[0]?.email_id || '',
+//                 assigned_by_sort_name: assignedByData[0]?.sort_name || ''
+//             });
+//         }
 
-        if (!_.isEmpty(data)) {
-            res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
-        } else {
-            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
-        }
-    } catch (e) {
-        console.error(`Error in getInboxData`, e);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-    }
-};
+//         if (!_.isEmpty(data)) {
+//             res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
+//         } else {
+//             res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
+//         }
+//     } catch (e) {
+//         console.error(`Error in getInboxData`, e);
+//         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+//     }
+// };
 
 // Divya --added on 23 Dec 2024
-// exports.getInboxData = async (req, res, next) => {
-// 	try {
-// 		const { user_id, limit, offset } = req.body;
-// 		// console.log("getInboxData", limit, offset);
+exports.getInboxData = async (req, res, next) => {
+	try {
+		const { user_id, limit, offset } = req.body;
+		// console.log("getInboxData", limit, offset);
 
-// 		// Fetch admin user details (logged in user)
-// 		const adminUserData = await adminUserModel.findOne(user_id); 
-// 		// console.log("adminUserData",adminUserData);
-// 		const user_location = adminUserData[0].user_location;
-// 		// console.log("user_location",user_location);
+		// Fetch admin user details (logged in user)
+		const adminUserData = await adminUserModel.findOne(user_id); 
+		// console.log("adminUserData",adminUserData);
+		const user_location = adminUserData[0].user_location;
+		// console.log("user_location",user_location);
 		
-// 		const data = await model.getInboxAppointments(user_location, parseInt(limit), parseInt(offset));
+		const data = await model.getInboxAppointments(user_location, parseInt(limit), parseInt(offset));
 		
-// 		for (const key in data) {
-// 			const value = data[key];
+		for (const key in data) {
+			const value = data[key];
 			
-// 			// Fetch user details
-// 			const tuserdata = await userModel.findOne(value.user_id); 
-// 			// console.log("tuserdata",tuserdata);
+			// Fetch user details
+			const tuserdata = await userModel.findOne(value.user_id); 
+			// console.log("tuserdata",tuserdata);
 
-// 			if (value.toa !== 'offline') {
-// 				data[key].toa = 'online';
-// 			} else {
-// 				data[key].toa = 'In-Person';
-// 			}
+			if (value.toa !== 'offline') {
+				data[key].toa = 'online';
+			} else {
+				data[key].toa = 'In-Person';
+			}
 
-// 			if (value.for_ap === 'me') {
-// 				data[key].full_name = tuserdata[0]?.full_name || '';
-// 				data[key].photo = tuserdata[0]?.photo || '';
-// 				data[key].designation = tuserdata[0]?.designation || '';
+			if (value.for_ap === 'me') {
+				data[key].full_name = tuserdata[0]?.full_name || '';
+				data[key].photo = tuserdata[0]?.photo || '';
+				data[key].designation = tuserdata[0]?.designation || '';
 		
-// 				data[key].ref_name = value.ref_name;
-// 				data[key].ref_country_code = value.ref_country_code;
-// 				data[key].ref_mobile_no = value.ref_mobile_no;
+				data[key].ref_name = value.ref_name;
+				data[key].ref_country_code = value.ref_country_code;
+				data[key].ref_mobile_no = value.ref_mobile_no;
 		
-// 				data[key].country_code = tuserdata[0]?.country_code || '';
-// 				data[key].phone_no = tuserdata[0]?.phone_no || '';
-// 			} else {
-// 				data[key].full_name = value.full_name;
-// 				data[key].photo = value.picture;
-// 				data[key].designation = value.designation;
+				data[key].country_code = tuserdata[0]?.country_code || '';
+				data[key].phone_no = tuserdata[0]?.phone_no || '';
+			} else {
+				data[key].full_name = value.full_name;
+				data[key].photo = value.picture;
+				data[key].designation = value.designation;
 		
-// 				data[key].ref_name = tuserdata[0]?.full_name || '';
-// 				data[key].ref_country_code = tuserdata[0]?.country_code || '';
-// 				data[key].ref_mobile_no = tuserdata[0]?.phone_no || '';
+				data[key].ref_name = tuserdata[0]?.full_name || '';
+				data[key].ref_country_code = tuserdata[0]?.country_code || '';
+				data[key].ref_mobile_no = tuserdata[0]?.phone_no || '';
 		
-// 				data[key].country_code = value.country_code;
-// 				data[key].phone_no = value.mobile_no;
-// 			}
+				data[key].country_code = value.country_code;
+				data[key].phone_no = value.mobile_no;
+			}
 		
-// 			data[key].user_full_name = tuserdata[0]?.full_name || '';
-// 			data[key].user_email_id = tuserdata[0]?.email_id || '';
+			data[key].user_full_name = tuserdata[0]?.full_name || '';
+			data[key].user_email_id = tuserdata[0]?.email_id || '';
 		
-// 			// Fetch admin user details (assigned to)
-// 			const atuserdata = await adminUserModel.findOne(value.assign_to); 
+			// Fetch admin user details (assigned to)
+			const atuserdata = await adminUserModel.findOne(value.assign_to); 
 
-// 			data[key].assign_to_full_name = atuserdata[0]?.full_name || '';
-// 			data[key].assign_to_email_id = atuserdata[0]?.email_id || '';
-// 			data[key].assign_to_sort_name = atuserdata[0]?.sort_name || '';
+			data[key].assign_to_full_name = atuserdata[0]?.full_name || '';
+			data[key].assign_to_email_id = atuserdata[0]?.email_id || '';
+			data[key].assign_to_sort_name = atuserdata[0]?.sort_name || '';
 		
-// 			// Fetch admin user details (assigned by)
-// 			const attuserdata = await adminUserModel.findOne(value.assigned_by); 
+			// Fetch admin user details (assigned by)
+			const attuserdata = await adminUserModel.findOne(value.assigned_by); 
 
-// 			data[key].assigned_by_full_name = attuserdata[0]?.full_name || '';
-// 			data[key].assigned_by_email_id = attuserdata[0]?.email_id || '';
-// 			data[key].assigned_by_sort_name = attuserdata[0]?.sort_name || '';
-// 		}
-// 		// console.log("Inbox data",data.length);
+			data[key].assigned_by_full_name = attuserdata[0]?.full_name || '';
+			data[key].assigned_by_email_id = attuserdata[0]?.email_id || '';
+			data[key].assigned_by_sort_name = attuserdata[0]?.sort_name || '';
+		}
+		// console.log("Inbox data",data.length);
 
-// 		if (!_.isEmpty(data)) {
-// 			res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
-// 		} else {
-// 			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
-// 		}
-// 	} catch (e) {
-// 		console.log(`Error in getInboxData`, e);
-// 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-// 	}
-// }
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
+		}
+	} catch (e) {
+		console.log(`Error in getInboxData`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+}
 
 // Divya --added on 24 Dec 2024
 // exports.getAssignedToMeData = async (req, res, next) => {
