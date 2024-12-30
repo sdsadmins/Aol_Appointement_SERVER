@@ -2036,3 +2036,19 @@ exports.getndateAppointments = async (req, res, next) => {
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
+
+exports.searchByDate = async (req, res, next) => {
+    const { from_date, to_date } = req.body; // Extract from_date and to_date from request body
+
+    if (!from_date || !to_date) {
+        return res.status(StatusCodes.BAD_REQUEST).send({ message: "Both from_date and to_date are required." });
+    }
+
+    try {
+        const appointments = await model.searchAppointmentsByDate(from_date, to_date); // Call the model function
+        res.status(StatusCodes.OK).send({ message: `${appointments.length} records found`, data: appointments });
+    } catch (error) {
+        console.error('Error in searchByDate:', error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: error.message });
+    }
+};

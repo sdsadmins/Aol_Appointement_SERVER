@@ -635,3 +635,12 @@ exports.getndateAppointments = async (user_id, show_appts_of, location, datestri
     // Execute query
     return getRows(query, params);
 }
+
+exports.searchAppointmentsByDate = async (fromDate, toDate) => {
+    const query = `
+        SELECT * 
+        FROM appointment_request 
+        WHERE ap_date BETWEEN ? AND ? 
+        AND deleted_app = '0'`; // Ensure only non-deleted appointments are returned
+    return getRows(query, [fromDate, toDate]);
+};
