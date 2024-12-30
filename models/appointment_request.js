@@ -141,9 +141,24 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = (dateString, assignTo) => {
+exports.getAppointmentsByDate = async (dateString, assignTo) => {
+    // Adjust the dateString to ensure it is in the correct timezone (IST)
+    const adjustedDate = moment.tz(dateString, 'Asia/Kolkata').format('YYYY-MM-DD'); // Adjust to Indian Standard Time
     const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`;
-    return getRows(query, [dateString, assignTo]);  // Parameters should match the order expected by the query
+    const appointments = await getRows(query, [adjustedDate, assignTo]);  // Use adjusted date
+
+    // Convert appointment dates to IST
+    const timezone = 'Asia/Kolkata';
+    const adjustedAppointments = appointments.map(appointment => {
+        return {
+            ...appointment,
+            ap_date: moment(appointment.ap_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
+            from_date: moment(appointment.from_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
+            to_date: moment(appointment.to_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
+        };
+    });
+
+    return adjustedAppointments;
 };
 
 exports.findOneByApId = async (apId) => {
