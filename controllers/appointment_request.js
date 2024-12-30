@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { StatusCodes } = require('http-status-codes');
-
+const moment = require('moment'); 
 const model = require("../models/appointment_request");
 const adminUserModel = require("../models/admin_users");
 const emailModel = require("../models/email_template");
@@ -2046,7 +2046,18 @@ exports.searchByDate = async (req, res, next) => {
 
     try {
         const appointments = await model.searchAppointmentsByDate(from_date, to_date); // Call the model function
-        res.status(StatusCodes.OK).send({ message: `${appointments.length} records found`, data: appointments });
+
+        // Enhance appointments with the day of the week
+        const enhancedAppointments = appointments.map(appointment => {
+            const ap_date = moment(appointment.ap_date);
+            const dayOfWeek = ap_date.format('dddd'); // 'dddd' for full day name, e.g., 'Monday'
+            return {
+                ...appointment,
+                day_of_week: dayOfWeek // Add the day of the week to each appointment
+            };
+        });
+
+        res.status(StatusCodes.OK).send({ message: `${enhancedAppointments.length} records found`, data: enhancedAppointments });
     } catch (error) {
         console.error('Error in searchByDate:', error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: error.message });
