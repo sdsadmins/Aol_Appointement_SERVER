@@ -480,21 +480,45 @@ exports.changePassword = async (req, res, next) => {
     }
 };
 
+// exports.getUserData = async (req, res, next) => {
+//     try {
+//         const userId = req.params.user_id; // Get user_id from request parameters
+//         const data = await model.findOne(userId); // Fetch user data using the model
+
+//         if (!_.isEmpty(data)) {
+//             res.status(StatusCodes.OK).send(data[0]); // Send the user data
+//         } else {
+//             res.status(StatusCodes.NOT_FOUND).send({ message: "User not found" });
+//         }
+//     } catch (e) {
+//         console.log(`Error in getUserData`, e);
+//         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+//     }
+// };
+
+
 exports.getUserData = async (req, res, next) => {
     try {
         const userId = req.params.user_id; // Get user_id from request parameters
         const data = await model.findOne(userId); // Fetch user data using the model
 
         if (!_.isEmpty(data)) {
-            res.status(StatusCodes.OK).send(data[0]); // Send the user data
+            // Add the full path to the photo field
+            const user = data[0]; // Assuming data is an array and we're accessing the first element
+            if (user.photo) {
+                user.photo = `uploads/${user.photo}`;
+            }
+
+            res.status(StatusCodes.OK).send(user); // Send the updated user data
         } else {
             res.status(StatusCodes.NOT_FOUND).send({ message: "User not found" });
         }
     } catch (e) {
-        console.log(`Error in getUserData`, e);
+        console.error("Error in getUserData", e);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
+
 
 exports.decryptAndUpdateSingleUser = async (req, res) => {
     try {
@@ -612,55 +636,6 @@ const uploadProfile = multer({
     }
 }).single("photo"); // Expecting a file field named 'photo'
 
-// exports.updateProfile = async (req, res) => {
-//     try {
-//         const id = req.params.user_id;
-
-//         uploadProfile(req, res, async (err) => {
-//             if (err) {
-//                 return res.status(400).json({ 
-//                     message: err.message 
-//                 });
-//             }
-
-//             try {
-//                 const userData = req.body;
-                
-//                 // If a file is uploaded, include the filename in userData
-//                 if (req.file) {
-//                     userData.photo = req.file.filename;
-//                 }
-
-//                 // Remove password if it exists in the request
-//                 delete userData.password;
-
-//                 const data = await model.update(id, userData);
-                
-//                 if (data && data.length > 0) {
-//                     res.status(200).json({
-//                         message: 'Profile updated successfully',
-//                         data: data[0]
-//                     });
-//                 } else {
-//                     res.status(404).json({ 
-//                         message: "User not found" 
-//                     });
-//                 }
-//             } catch (error) {
-//                 console.error('Error updating profile:', error);
-//                 res.status(500).json({ 
-//                     message: "Error updating profile",
-//                     error: error.message 
-//                 });
-//             }
-//         });
-//     } catch (e) {
-//         console.error('Error in updateProfile:', e);
-//         res.status(500).json({ 
-//             message: e.message 
-//         });
-//     }
-// };
 
 
 exports.updateProfile = async (req, res) => {
@@ -677,22 +652,20 @@ exports.updateProfile = async (req, res) => {
             try {
                 const userData = req.body;
                 
-                // If a file is uploaded, include the filename with the path in userData
+                // If a file is uploaded, include the filename in userData
                 if (req.file) {
-                    userData.photo = `uploads/${req.file.filename}`;  // Ensure this matches your server's static files setup
+                    userData.photo = req.file.filename;
                 }
 
-                // Remove password if it exists in the request to ensure security
+                // Remove password if it exists in the request
                 delete userData.password;
 
-                // Update the user data in the database
                 const data = await model.update(id, userData);
                 
-                // Check if update was successful and return appropriate response
                 if (data && data.length > 0) {
                     res.status(200).json({
                         message: 'Profile updated successfully',
-                        data: data[0]  // Ensure that the photo attribute in data reflects the change if necessary
+                        data: data[0]
                     });
                 } else {
                     res.status(404).json({ 
@@ -714,3 +687,6 @@ exports.updateProfile = async (req, res) => {
         });
     }
 };
+
+
+
