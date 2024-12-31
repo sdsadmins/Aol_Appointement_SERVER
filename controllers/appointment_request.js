@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { StatusCodes } = require('http-status-codes');
-
+const moment = require('moment'); 
 const model = require("../models/appointment_request");
 const adminUserModel = require("../models/admin_users");
 const emailModel = require("../models/email_template");
@@ -14,7 +14,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const emailService = require('../services/emailService');
-const { country_code, from_date, to_date } = require('../dto/appointment_request.dto');
+const { country_code, from_date, to_date, ap_status } = require('../dto/appointment_request.dto');
 const QRCode = require('qrcode');
 const uploadsDir = path.join(__dirname, '../uploads'); // Adjusted to point to the correct uploads directory
 
@@ -26,6 +26,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Add multer storage configuration at the top of the file
 const storage = multer.diskStorage({
+	
 	destination: function (req, file, cb) {
 		const uploadDir = path.join(__dirname, '../uploads/appointments');
 		if (!fs.existsSync(uploadDir)) {
@@ -414,7 +415,8 @@ exports.getSingleAppointmentDetails = async (req, res, next) => {
 		if (!_.isEmpty(data)) {
 			res.status(StatusCodes.OK).send(data[0]); // Send the first result
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+			// res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+			res.status(StatusCodes.OK).send({ message: "No appointment found with this ID." });
 		}
 	} catch (e) {
 		console.log(`Error in getSingleAppointmentDetails`, e);
@@ -1527,86 +1529,170 @@ exports.changeAppointmentStar = async (req, res, next) => {
 };
 
 
-// Divya --added on 23 Dec 2024
 exports.getInboxData = async (req, res, next) => {
-	try {
-		const { user_id, limit, offset } = req.body;
-		// console.log("getInboxData", limit, offset);
+    try {
+        const { user_id, limit, offset } = req.body;
 
-		// Fetch admin user details (logged in user)
-		const adminUserData = await adminUserModel.findOne(user_id); 
-		// console.log("adminUserData",adminUserData);
-		const user_location = adminUserData[0].user_location;
-		// console.log("user_location",user_location);
-		
-		const data = await model.getInboxAppointments(user_location, parseInt(limit), parseInt(offset));
-		
-		for (const key in data) {
-			const value = data[key];
+        // Validate required input
+        if (!user_id) {
+            return res.status(400).send({ message: 'User ID is required' });
+        }
 
-			// Fetch user details
-			const tuserdata = await userModel.findOne(value.user_id); 
-			// console.log("tuserdata",tuserdata);
+        // Fetch admin user details (logged in user)
+        const adminUserData = await adminUserModel.findOne(user_id);
+        if (!adminUserData || adminUserData.length === 0) {
+            return res.status(404).send({ message: 'Admin user not found' });
+        }
+        const user_location = adminUserData[0].user_location;
 
-			if (value.toa !== 'offline') {
-				data[key].toa = 'online';
-			} else {
-				data[key].toa = 'In-Person';
-			}
+        const data = await model.getInboxAppointments(user_location, parseInt(limit), parseInt(offset));
 
-			if (value.for_ap === 'me') {
-				data[key].full_name = tuserdata[0]?.full_name || '';
-				data[key].photo = tuserdata[0]?.photo || '';
-				data[key].designation = tuserdata[0]?.designation || '';
-		
-				data[key].ref_name = value.ref_name;
-				data[key].ref_country_code = value.ref_country_code;
-				data[key].ref_mobile_no = value.ref_mobile_no;
-		
-				data[key].country_code = tuserdata[0]?.country_code || '';
-				data[key].phone_no = tuserdata[0]?.phone_no || '';
-			} else {
-				data[key].full_name = value.full_name;
-				data[key].photo = value.picture;
-				data[key].designation = value.designation;
-		
-				data[key].ref_name = tuserdata[0]?.full_name || '';
-				data[key].ref_country_code = tuserdata[0]?.country_code || '';
-				data[key].ref_mobile_no = tuserdata[0]?.phone_no || '';
-		
-				data[key].country_code = value.country_code;
-				data[key].phone_no = value.mobile_no;
-			}
-		
-			data[key].user_full_name = tuserdata[0]?.full_name || '';
-			data[key].user_email_id = tuserdata[0]?.email_id || '';
-		
-			// Fetch admin user details (assigned to)
-			const atuserdata = await adminUserModel.findOne(value.assign_to); 
+        for (const key in data) {
+            const value = data[key];
+            const tuserdata = await userModel.findOne(value.user_id);
+            if (!tuserdata || tuserdata.length === 0) {
+                continue; // Skip this record or handle missing user data appropriately
+            }
 
-			data[key].assign_to_full_name = atuserdata[0]?.full_name || '';
-			data[key].assign_to_email_id = atuserdata[0]?.email_id || '';
-			data[key].assign_to_sort_name = atuserdata[0]?.sort_name || '';
+            // Update the 'toa' field
+            data[key].toa = value.toa !== 'offline' ? 'online' : 'In-Person';
+
+            // Extract user data for the current record
+            const userData = tuserdata[0];
+
+            // Handle appointments for 'me' and others
+            if (value.for_ap === 'me') {
+                Object.assign(data[key], {
+                    full_name: userData.full_name || '',
+                    photo: userData.photo || '',
+                    designation: userData.designation || '',
+                    ref_name: value.ref_name,
+                    ref_country_code: value.ref_country_code,
+                    ref_mobile_no: value.ref_mobile_no,
+                    country_code: userData.country_code || '',
+                    phone_no: userData.phone_no || '',
+                    user_full_name: userData.full_name || '',
+                    user_email_id: userData.email_id || ''
+                });
+            } else {
+                Object.assign(data[key], {
+                    full_name: value.full_name,
+                    photo: value.picture,
+                    designation: value.designation,
+                    ref_name: userData.full_name || '',
+                    ref_country_code: userData.country_code || '',
+                    ref_mobile_no: userData.phone_no || '',
+                    country_code: value.country_code,
+                    phone_no: value.mobile_no
+                });
+            }
+
+            // Fetch and assign details for 'assigned to' and 'assigned by' users
+            const assignToData = await adminUserModel.findOne(value.assign_to);
+            const assignedByData = await adminUserModel.findOne(value.assigned_by);
+
+            Object.assign(data[key], {
+                assign_to_full_name: assignToData[0]?.full_name || '',
+                assign_to_email_id: assignToData[0]?.email_id || '',
+                assign_to_sort_name: assignToData[0]?.sort_name || '',
+                assigned_by_full_name: assignedByData[0]?.full_name || '',
+                assigned_by_email_id: assignedByData[0]?.email_id || '',
+                assigned_by_sort_name: assignedByData[0]?.sort_name || ''
+            });
+        }
+
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
+        } else {
+            // res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
+			res.status(StatusCodes.OK).send({ message: "No appointments found !!" });
+        }
+    } catch (e) {
+        console.error(`Error in getInboxData`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
+
+// Divya --added on 23 Dec 2024
+// exports.getInboxData = async (req, res, next) => {
+// 	try {
+// 		const { user_id, limit, offset } = req.body;
+// 		// console.log("getInboxData", limit, offset);
+
+// 		// Fetch admin user details (logged in user)
+// 		const adminUserData = await adminUserModel.findOne(user_id); 
+// 		// console.log("adminUserData",adminUserData);
+// 		const user_location = adminUserData[0].user_location;
+// 		// console.log("user_location",user_location);
 		
-			// Fetch admin user details (assigned by)
-			const attuserdata = await adminUserModel.findOne(value.assigned_by); 
+// 		const data = await model.getInboxAppointments(user_location, parseInt(limit), parseInt(offset));
+		
+// 		for (const key in data) {
+// 			const value = data[key];
+			
+// 			// Fetch user details
+// 			const tuserdata = await userModel.findOne(value.user_id); 
+// 			// console.log("tuserdata",tuserdata);
 
-			data[key].assigned_by_full_name = attuserdata[0]?.full_name || '';
-			data[key].assigned_by_email_id = attuserdata[0]?.email_id || '';
-			data[key].assigned_by_sort_name = attuserdata[0]?.sort_name || '';
-		}
-		// console.log("Inbox data",data.length);
+// 			if (value.toa !== 'offline') {
+// 				data[key].toa = 'online';
+// 			} else {
+// 				data[key].toa = 'In-Person';
+// 			}
 
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
-		}
-	} catch (e) {
-		console.log(`Error in getInboxData`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
-}
+// 			if (value.for_ap === 'me') {
+// 				data[key].full_name = tuserdata[0]?.full_name || '';
+// 				data[key].photo = tuserdata[0]?.photo || '';
+// 				data[key].designation = tuserdata[0]?.designation || '';
+		
+// 				data[key].ref_name = value.ref_name;
+// 				data[key].ref_country_code = value.ref_country_code;
+// 				data[key].ref_mobile_no = value.ref_mobile_no;
+		
+// 				data[key].country_code = tuserdata[0]?.country_code || '';
+// 				data[key].phone_no = tuserdata[0]?.phone_no || '';
+// 			} else {
+// 				data[key].full_name = value.full_name;
+// 				data[key].photo = value.picture;
+// 				data[key].designation = value.designation;
+		
+// 				data[key].ref_name = tuserdata[0]?.full_name || '';
+// 				data[key].ref_country_code = tuserdata[0]?.country_code || '';
+// 				data[key].ref_mobile_no = tuserdata[0]?.phone_no || '';
+		
+// 				data[key].country_code = value.country_code;
+// 				data[key].phone_no = value.mobile_no;
+// 			}
+		
+// 			data[key].user_full_name = tuserdata[0]?.full_name || '';
+// 			data[key].user_email_id = tuserdata[0]?.email_id || '';
+		
+// 			// Fetch admin user details (assigned to)
+// 			const atuserdata = await adminUserModel.findOne(value.assign_to); 
+
+// 			data[key].assign_to_full_name = atuserdata[0]?.full_name || '';
+// 			data[key].assign_to_email_id = atuserdata[0]?.email_id || '';
+// 			data[key].assign_to_sort_name = atuserdata[0]?.sort_name || '';
+		
+// 			// Fetch admin user details (assigned by)
+// 			const attuserdata = await adminUserModel.findOne(value.assigned_by); 
+
+// 			data[key].assigned_by_full_name = attuserdata[0]?.full_name || '';
+// 			data[key].assigned_by_email_id = attuserdata[0]?.email_id || '';
+// 			data[key].assigned_by_sort_name = attuserdata[0]?.sort_name || '';
+// 		}
+// 		// console.log("Inbox data",data.length);
+
+// 		if (!_.isEmpty(data)) {
+// 			res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
+// 		} else {
+// 			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
+// 		}
+// 	} catch (e) {
+// 		console.log(`Error in getInboxData`, e);
+// 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+// 	}
+// }
 
 // Divya --added on 24 Dec 2024
 // exports.getAssignedToMeData = async (req, res, next) => {
@@ -1769,3 +1855,213 @@ exports.getAssignedToMeData = async (req, res, next) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 }
+
+// Divya --added on 28 Dec 2024
+exports.getndateAppointments = async (req, res, next) => {
+	try {
+		// console.log("req",req.params);
+		const { user_id, datestring } = req.params; 
+
+		// Fetch admin user details (logged in user)
+        const adminUserData = await adminUserModel.findOne(user_id);  // Using `user_id` for admin details
+		// console.log("adminUserData",adminUserData);
+
+		const show_appts_of = adminUserData[0].show_appts_of;
+		const user_location = adminUserData[0].user_location;
+
+		// Fetch the assigned appointments
+        const data = await model.getndateAppointments(user_id, show_appts_of, user_location, datestring);
+		// console.log("ndate Data",data.length);
+
+		for (const key in data) {
+            const value = data[key];
+
+            // Fetch user details
+            const tuserdata = await userModel.findOne(value.user_id);
+            if (value.toa !== 'offline') {
+                data[key].toa = 'online';
+            } else {
+                data[key].toa = 'In-Person';
+            }
+
+            if (value.for_ap === 'me') {
+                data[key].full_name = tuserdata[0]?.full_name || '';
+                data[key].photo = tuserdata[0]?.photo || '';
+				
+				data[key].country_code = tuserdata[0]?.country_code || '';
+                data[key].phone_no = tuserdata[0]?.phone_no || '';
+				data[key].email_id = tuserdata[0]?.email_id || '';
+                
+				data[key].designation = tuserdata[0]?.designation || '';
+				data[key].company = tuserdata[0]?.company || '';
+
+                data[key].ref_name = value.ref_name;
+                data[key].ref_country_code = value.ref_country_code;
+                data[key].ref_mobile_no = value.ref_mobile_no;
+				data[key].ref_email_id = value.ref_email_id;
+            } else {
+                data[key].full_name = value.full_name;
+                data[key].photo = value.picture;
+
+				data[key].country_code = value.country_code;
+                data[key].phone_no = value.mobile_no;
+				data[key].email_id = value.email_id;
+
+                data[key].designation = value.designation;
+				data[key].company = value.designationcomp;
+                
+				data[key].ref_name = tuserdata[0]?.full_name || '';
+                data[key].ref_country_code = tuserdata[0]?.country_code || '';
+                data[key].ref_mobile_no = tuserdata[0]?.phone_no || '';
+                data[key].ref_email_id = tuserdata[0]?.email_id || '';
+            }
+
+            // Fetch admin user details (assigned to)
+            const atuserdata = await adminUserModel.findOne(value.assign_to);
+            data[key].assign_to_full_name = atuserdata[0]?.full_name || '';
+            data[key].assign_to_email_id = atuserdata[0]?.email_id || '';
+            data[key].assign_to_sort_name = atuserdata[0]?.sort_name || '';
+
+            // Fetch admin user details (assigned by)
+            const attuserdata = await adminUserModel.findOne(value.assigned_by);
+            data[key].assigned_by_full_name = attuserdata[0]?.full_name || '';
+            data[key].assigned_by_email_id = attuserdata[0]?.email_id || '';
+            data[key].assigned_by_sort_name = attuserdata[0]?.sort_name || '';
+        }
+
+		// console.log("ndate Data",data.length);
+
+		const morning_data = [];
+		const evening_data = [];
+		const night_data = [];
+		const tbrs_data = [];
+		const done_data = [];
+		const sb_data = [];
+		const gk_data = [];
+		const pb_data = [];
+
+		let morning_users = 0;
+		let evening_users = 0;
+		let night_users = 0;
+		let tbrs_users = 0;
+		let done_users = 0;
+		let sb_users = 0;
+		let gk_users = 0;
+		let pb_users = 0;
+
+		for (const key in data) {
+            const value = data[key];
+
+			// console.log(value.ap_time);
+			const ap_time = new Date(value.ap_time * 1000); // Convert timestamp to Date object
+			const time = ap_time.getHours(); // Extract hour in 24-hour format
+    		// console.log(ap_time, time);
+
+			if(value.ap_status == "Scheduled"){
+				if (time < 16) {
+					morning_data.push(value);
+					morning_users += value.no_people;
+				} else if (time >= 16 && time < 19) {
+					evening_data.push(value);
+					evening_users += value.no_people;
+				} else if (time >= 19 && time < 24) {
+					night_data.push(value);
+					night_users += value.no_people;
+				}
+			} else if(value.ap_status == "TB R/S"){
+				// Push the value into the array
+				tbrs_data.push(value);
+				// Increment tbrs_users by the value of 'no_people'
+				tbrs_users += value.no_people;
+			} else if (value.ap_status = "Done"){
+				done_data.push(value);
+				done_users += value.no_people;
+			} else if (value.ap_status = "SB"){
+				sb_data.push(value);
+				sb_users += value.no_people;
+			} else if (value.ap_status = "GK"){
+				gk_data.push(value);
+				gk_users += value.no_people;
+			} else if (value.ap_status = "PB"){
+				pb_data.push(value);
+				pb_users += value.no_people;
+			}
+
+			
+		}
+
+		const app_data = {};
+
+		if (morning_data) {
+			app_data.morning_data = morning_data;
+		}
+
+		if (evening_data) {
+			app_data.evening_data = evening_data;
+		}
+
+		if (night_data) {
+			app_data.night_data = night_data;
+		}
+
+		if (tbrs_data) {
+			app_data.tbrs_data = tbrs_data;
+		}
+
+		if (done_data) {
+			app_data.done_data = done_data;
+		}
+
+		if (sb_data) {
+			app_data.sb_data = sb_data;
+		}
+
+		if (gk_data) {
+			app_data.gk_data = gk_data;
+		}
+
+		if (pb_data) {
+			app_data.pb_data = pb_data;
+		}
+
+		// console.log("app_data",app_data);
+
+		// Return response
+        if (!_.isEmpty(app_data)) {
+            res.status(StatusCodes.OK).send({ message: `records found`, app_data });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
+        }
+
+	} catch (e) {
+		console.log(`Error in getndateAppointments`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+
+exports.searchByDate = async (req, res, next) => {
+    const { from_date, to_date } = req.body; // Extract from_date and to_date from request body
+
+    if (!from_date || !to_date) {
+        return res.status(StatusCodes.BAD_REQUEST).send({ message: "Both from_date and to_date are required." });
+    }
+
+    try {
+        const appointments = await model.searchAppointmentsByDate(from_date, to_date); // Call the model function
+
+        // Enhance appointments with the day of the week
+        const enhancedAppointments = appointments.map(appointment => {
+            const ap_date = moment(appointment.ap_date);
+            const dayOfWeek = ap_date.format('dddd'); // 'dddd' for full day name, e.g., 'Monday'
+            return {
+                ...appointment,
+                day_of_week: dayOfWeek // Add the day of the week to each appointment
+            };
+        });
+
+        res.status(StatusCodes.OK).send({ message: `${enhancedAppointments.length} records found`, data: enhancedAppointments });
+    } catch (error) {
+        console.error('Error in searchByDate:', error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: error.message });
+    }
+};

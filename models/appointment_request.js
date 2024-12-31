@@ -2,6 +2,7 @@ const { getRows, insertRow, updateRow, deleteRow } = require('../database/query'
 const SqlString = require('sqlstring');
 const validationDto = require('../dto/appointment_request.dto');
 const _ = require('lodash');
+const moment = require('moment-timezone');
  // Ensure this path is correct
 
 // exports.find = async (offset, pageSize) => {
@@ -9,8 +10,7 @@ const _ = require('lodash');
 //     return getRows(query,[offset,pageSize]);
 // }
 
-exports.find = async (userId, offset, pageSize) => {
-    // Query to get the appointments based on the userId, with pagination
+exports.find = async (assignToId, offset, pageSize) => {
     const query = `
         SELECT t.id, t.ap_id, t.user_id, t.for_ap, t.full_name, t.email_id, t.country_code, t.mobile_no, 
             t.ref_name, t.ref_country_code, t.ref_mobile_no, t.ref_email_id, t.ap_location, t.app_visit, 
@@ -25,27 +25,34 @@ exports.find = async (userId, offset, pageSize) => {
             t.no_people_numbers, t.no_people_eleven_details, t.send_schedule, t.arrival_time, t.schedule_date, 
             t.schedule_time, t.schedule_send_status, t.stay_avail
         FROM appointment_request as t
-        WHERE t.user_id = ? 
+        WHERE t.assign_to = ? 
         ORDER BY t.ap_date DESC
         LIMIT ?, ?`;
 
-    // Query to count the total number of appointments based on userId and ap_date
     const countQuery = `
         SELECT COUNT(*) AS totalCount
         FROM appointment_request as t
-        WHERE t.user_id = ?`;
+        WHERE t.assign_to = ?`;
 
-    // Execute both queries
     const [appointments, countResult] = await Promise.all([
-        getRows(query, [userId, offset, pageSize]),
-        getRows(countQuery, [userId])
+        getRows(query, [assignToId, offset, pageSize]),
+        getRows(countQuery, [assignToId]),
     ]);
 
-    // Extract total count from the result
     const totalCount = countResult && countResult[0] ? countResult[0].totalCount : 0;
 
-    // Return appointments and total count
-    return { appointments, totalCount };
+    // Define your desired timezone
+    const timezone = 'Asia/Kolkata'; // Replace with the desired timezone
+
+    // Convert `ap_date` to local timezone
+    const adjustedAppointments = appointments.map((appointment) => {
+        return {
+            ...appointment,
+            ap_date: moment(appointment.ap_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'), // Convert to local timezone
+        };
+    });
+
+    return { appointments: adjustedAppointments, totalCount };
 };
 
 
@@ -134,9 +141,24 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = (dateString, assignTo) => {
+exports.getAppointmentsByDate = async (dateString, assignTo) => {
+    // Adjust the dateString to ensure it is in the correct timezone (IST)
+    const adjustedDate = moment.tz(dateString, 'Asia/Kolkata').format('YYYY-MM-DD'); // Adjust to Indian Standard Time
     const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`;
-    return getRows(query, [dateString, assignTo]);  // Parameters should match the order expected by the query
+    const appointments = await getRows(query, [adjustedDate, assignTo]);  // Use adjusted date
+
+    // Convert appointment dates to IST
+    const timezone = 'Asia/Kolkata';
+    const adjustedAppointments = appointments.map(appointment => {
+        return {
+            ...appointment,
+            ap_date: moment(appointment.ap_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
+            from_date: moment(appointment.from_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
+            to_date: moment(appointment.to_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
+        };
+    });
+
+    return adjustedAppointments;
 };
 
 exports.findOneByApId = async (apId) => {
@@ -571,5 +593,69 @@ exports.getUserAppointmentsCountByDate = async (assignToId) => {
         WHERE assign_to = ? 
         GROUP BY ap_date
     `;
-    return getRows(query, [assignToId]);
+
+    const timezone = 'Asia/Kolkata'; // Replace with the desired timezone
+    const result = await getRows(query, [assignToId]);
+
+    return result.map((row) => ({
+        ap_date: moment(row.ap_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
+        appointment_count: row.appointment_count,
+    }));
+};
+
+// Divya --added on 28 Dec 2024
+exports.getndateAppointments = async (user_id, show_appts_of, location, datestring) => {
+    // console.log("ndate model - Parameters:", user_id, show_appts_of, location, datestring);
+
+    const params = [];
+    const main_location = "1";
+    const statusList = ['Scheduled','TB R/S','Done','SB','GK','PB'];
+  
+    // Base query
+    let query = `
+        SELECT * 
+        FROM appointment_request 
+        WHERE deleted_app = ? 
+    `;
+    params.push('0'); // deleted_app is always '0'
+
+    // Location logic
+    if (main_location !== location) {
+        if (show_appts_of !== 'All') {
+            const showApptsOfArray = show_appts_of.split(','); // Convert string to array
+            query += `AND ap_location IN (${showApptsOfArray.map(() => '?').join(', ')}) `;
+            params.push(...showApptsOfArray);
+        }
+    }
+
+    // Add date condition (convert time zones if necessary)
+    // const todayDate = oneTimeZoneToAnother(today, 'Y-m-d', timezone); // Assuming you have a utility for time zone conversion
+    query += `AND ap_date = ? `;
+    params.push(datestring);
+
+    // Add status filter
+    if (statusList && statusList.length > 0) {
+        query += `AND ap_status IN (${statusList.map(() => '?').join(', ')}) `;
+        params.push(...statusList);
+    }
+
+    // Add ordering
+    query += `ORDER BY ap_time ASC`;
+
+    // Debug the final query and params
+    // console.log('Final Query:', query);
+    // console.log('Params:', params);
+
+
+    // Execute query
+    return getRows(query, params);
+}
+
+exports.searchAppointmentsByDate = async (fromDate, toDate) => {
+    const query = `
+        SELECT * 
+        FROM appointment_request 
+        WHERE ap_date BETWEEN ? AND ? 
+        AND deleted_app = '0'`; // Ensure only non-deleted appointments are returned
+    return getRows(query, [fromDate, toDate]);
 };
