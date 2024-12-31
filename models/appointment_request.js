@@ -64,21 +64,21 @@ exports.updateAppointmentStatus = async (appid, status) => {
 };
 
 exports.findOne = async (id) => {
-    const query = `SELECT * FROM appointment_request WHERE id = ?`;
+    const query = `SELECT * FROM appointment_request WHERE id = ?  AND deleted_app = 0`;
     return getRows(query, [id]);
 }
 
-exports.insert = async (object) => {
-    const query = `INSERT INTO appointment_request SET ?`;
-    const id = await insertRow(query, object);
-    if (id > 0) {
-        return this.findOne(id);
-    }
-    else {
-        return this.findOne(object.id);
-    }
+exports.searchAppointmentsByDate = async (fromDate, toDate) => {
+    const query = `
+        SET @@session.time_zone = '+00:00';
+        SELECT *, CONVERT_TZ(ap_date, @@session.time_zone, '+00:00') as utc_ap_date
+        FROM appointment_request 
+        WHERE ap_date BETWEEN ? AND ? 
+        AND deleted_app = '0';
+    `;
+    return getRows(query, [fromDate, toDate]);
+};
 
-}
 
 exports.update = async (id, object) => {
     const updateKeys = [];
@@ -452,6 +452,7 @@ exports.getInboxAppointments = async (location, limit, offset) => {
         FROM appointment_request 
         WHERE ap_status = ? 
         AND darshan_line = '' 
+        AND deleted_app = 0 
         AND backstage_status = '' 
         AND deleted_app = ? 
     `;

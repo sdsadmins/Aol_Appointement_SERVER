@@ -1996,23 +1996,26 @@ exports.getndateAppointments = async (req, res, next) => {
 	}
 };
 
+
 exports.searchByDate = async (req, res, next) => {
-    const { from_date, to_date } = req.body; // Extract from_date and to_date from request body
+    const { from_date, to_date } = req.body;
 
     if (!from_date || !to_date) {
         return res.status(StatusCodes.BAD_REQUEST).send({ message: "Both from_date and to_date are required." });
     }
 
     try {
-        const appointments = await model.searchAppointmentsByDate(from_date, to_date); // Call the model function
+        const appointments = await model.searchAppointmentsByDate(from_date, to_date);
 
-        // Enhance appointments with the day of the week
         const enhancedAppointments = appointments.map(appointment => {
-            const ap_date = moment(appointment.ap_date);
-            const dayOfWeek = ap_date.format('dddd'); // 'dddd' for full day name, e.g., 'Monday'
+            // Assuming ap_date is coming from the DB in UTC and needs no conversion
+            const ap_date = moment.utc(appointment.ap_date); // This is correct if ap_date is a UTC date string
+            const dayOfWeek = ap_date.format('dddd'); // Gets the day of the week in UTC
+
             return {
                 ...appointment,
-                day_of_week: dayOfWeek // Add the day of the week to each appointment
+                ap_date: ap_date.format('YYYY-MM-DD'), // Ensures the date is formatted in UTC
+                day_of_week: dayOfWeek
             };
         });
 
