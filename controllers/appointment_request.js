@@ -53,7 +53,7 @@ const upload = multer({
 		}
 	},
 	limits: {
-		fileSize: 5 * 1024 * 1024 // 5MB limit
+		fileSize: 10 * 1024 * 1024 // 5MB limit
 	}
 }).fields([{ name: 'attachment', maxCount: 1 }, { name: 'picture', maxCount: 1 }]);
 
