@@ -51,6 +51,7 @@ app.use('/favicon.ico', (req, res) => {
 });
 
 app.use((req, res, next) => {
+    
     const error = new Error("Not found");
     error.status = StatusCodes.NOT_FOUND;
     next(error);
