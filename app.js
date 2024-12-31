@@ -39,8 +39,12 @@ app.use(logger('dev', {
 }))
 app.use(logger('dev'));
 // app.use(fileUpload());
-app.use(bodyParser.urlencoded({extended: false}));
-app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({extended: false}));
+// app.use(bodyParser.json());
+
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+
 app.use("/api/v1", routes);
 app.use('/favicon.ico', (req, res) => {
     res.status(StatusCodes.OK).send();
