@@ -453,7 +453,6 @@ exports.getInboxAppointments = async (location, limit, offset) => {
         FROM appointment_request 
         WHERE ap_status = ? 
         AND darshan_line = '' 
-        AND deleted_app = 0 
         AND backstage_status = '' 
         AND deleted_app = ? 
     `;
