@@ -274,11 +274,11 @@ exports.submitSelfAppointment = async (req, res, next) => {
 			if (data) {
 				res.status(StatusCodes.CREATED).send({
 					message: 'Appointment created',
-					data: data
+					data: appointmentData
 				});
 			} else {
 				res.status(StatusCodes.BAD_REQUEST).send({
-					message: "Bad Request!"
+					message: "Failed to create appointment"
 				});
 			}
 		} catch (e) {

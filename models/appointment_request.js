@@ -661,3 +661,12 @@ exports.searchAppointmentsByDate = async (fromDate, toDate) => {
         AND deleted_app = '0'`; // Ensure only non-deleted appointments are returned
     return getRows(query, [fromDate, toDate]);
 };
+exports.insert = async (object) => {
+    const query = `INSERT INTO appointment_request SET ?`;
+    const id = await insertRow(query, object);
+    if (id > 0) {
+        return this.findOne(id);
+    } else {
+        return null;
+    }
+};
