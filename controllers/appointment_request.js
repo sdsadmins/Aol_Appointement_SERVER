@@ -406,23 +406,22 @@ exports.getAppointmentsByDate = async (req, res, next) => {
 
 
 exports.getSingleAppointmentDetails = async (req, res, next) => {
-	try {
-		const { id } = req.params; // Extract id from the route parameter
-
-		// Call the model method to get appointment details by ID
-		const data = await model.findOne(id);
-
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data[0]); // Send the first result
-		} else {
-			// res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
-			res.status(StatusCodes.OK).send({ message: "No appointment found with this ID." });
-		}
-	} catch (e) {
-		console.log(`Error in getSingleAppointmentDetails`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+    try {
+        const { ap_id } = req.params; // Extract id from the route parameter
+      
+        const data = await model.findOneByApId(ap_id); // Pass the correct variable to model.findOne
+        if (data && data.length > 0) { // Check if data exists and has at least one element
+            res.status(StatusCodes.OK).send(data[0]);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+        }
+    } catch (e) {
+        console.log(`Error in getSingleAppointmentDetails`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
+
+
 
 exports.changeCheckInStatus = async (req, res, next) => {
 	try {

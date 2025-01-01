@@ -18,7 +18,7 @@ router.get('/usersData/:assign_to', checkAuth, controller.getUserAppointments);
 router.post('/getLastSecretary', checkAuth, controller.getLastSecretary);
 router.post('/appointmentforOther/:user_id', checkAuth, controller.submitGuestAppointment);
 router.get('/usersHistory/:user_id/:email_id', checkAuth, controller.getUserHistory);
-router.get('/single_appointment_details/:id', checkAuth, controller.getSingleAppointmentDetails);
+router.get('/single_appointment_details/:ap_id', checkAuth, controller.getSingleAppointmentDetails);
 router.post('/change_check_in_status', checkAuth, controller.changeCheckInStatus);
 router.post('/update_appointment/:user_id', checkAuth, controller.updateAppointment);
 router.post('/make_appointment_done', checkAuth, controller.makeAppointmentDone);

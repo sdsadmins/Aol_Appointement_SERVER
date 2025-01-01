@@ -63,10 +63,11 @@ exports.updateAppointmentStatus = async (appid, status) => {
     return result;
 };
 
-exports.findOne = async (id) => {
-    const query = `SELECT * FROM appointment_request WHERE id = ?  AND deleted_app = 0`;
-    return getRows(query, [id]);
-}
+exports.findOne = async (apId) => {
+    const query = `SELECT * FROM appointment_request WHERE ap_id = ? AND deleted_app = 0`; // Changed 'id' to 'ap_id'
+    return getRows(query, [apId]);
+};
+
 
 exports.searchAppointmentsByDate = async (fromDate, toDate) => {
     const query = `
