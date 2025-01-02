@@ -413,7 +413,7 @@ exports.getSingleAppointmentDetails = async (req, res, next) => {
         if (data && data.length > 0) { // Check if data exists and has at least one element
             res.status(StatusCodes.OK).send(data[0]);
         } else {
-            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+            res.status(StatusCodes.OK).send({ message: "No appointment found with this ID." });
         }
     } catch (e) {
         console.log(`Error in getSingleAppointmentDetails`, e);
