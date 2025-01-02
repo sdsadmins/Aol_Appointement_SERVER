@@ -1349,15 +1349,15 @@ async function generateQRCode(data) {
 exports.updateAssignToFill = async (req, res, next) => {
     try {
         const ap_id = req.params.ap_id; // Extract ap_id from the route parameter
-        const { name } = req.body; // Extract name from the request body
+        const { name, assignToFill } = req.body; // Extract name and assignToFill from the request body
 
-        console.log("Request Parameters:", { ap_id, name });
+        console.log("Request Parameters:", { ap_id, name, assignToFill });
 
         if (!name) {
             return res.status(StatusCodes.BAD_REQUEST).send({ message: "Name is required" });
         }
 
-        const updateResult = await model.updateAssignToFill(ap_id, name); // Call the model method
+        const updateResult = await model.updateAssignToFill(ap_id, name, assignToFill); // Call the model method
         
         console.log("Update Result:", updateResult);
 
