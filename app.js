@@ -35,6 +35,7 @@ const allowCrossDomain = function (req, res, next) {
 };
 app.use(cors());
 app.use(allowCrossDomain);
+app.use(express.static(__dirname + '/uploads'));
 // Error logger
 app.use(logger('dev', {
     skip: function (req, res) { return res.statusCode < 400 },
@@ -81,4 +82,4 @@ process.on("unhandledRejection", (reason, p) => {
     console.error("Unhandled Rejection at:", p, "reason:", reason)
 });
 
-app.use('/uploads', express.static('uploads'));
+// app.use('/uploads', express.static('uploads'));
