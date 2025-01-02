@@ -615,29 +615,32 @@ exports.restoreAppointment = async (req, res, next) => {
 };
 
 exports.deleteAppointment = async (req, res, next) => {
-	try {
-		const id = req.params.id; // Extract id from the route parameter
+    try {
+        const ap_id = req.params.ap_id; // Extract id from the route parameter
 
-		// Ensure id is provided
-		if (!id) {
-			return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
-		}
+        // Ensure id is provided
+        if (!ap_id) {
+            return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
+        }
 
-		// Call the model method to update the deleted_app field
-		const data = await model.remove(id); // This will now update deleted_app to 1
+        // Check if the appointment exists before marking it as deleted
+        const appointment = await model.findOne(ap_id); 
 
-		if (data) {
-			res.status(StatusCodes.OK).send({
-				message: "Appointment marked as deleted successfully",
-				data: { id, deleted_app: 1 } // Send the ID and the updated status
-			});
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
-		}
-	} catch (e) {
-		console.log(`Error in deleteAppointment`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+        // Call the model method to update the deleted_app field
+        const data = await model.updateDeletedApp(ap_id, '1'); // Update deleted_app to 1
+
+        if (data) {
+            res.status(StatusCodes.OK).send({
+                message: "Appointment marked as deleted successfully",
+                data: { ap_id, deleted_app: 1 } // Send the ID and the updated status
+            });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+        }
+    } catch (e) {
+        console.log(`Error in deleteAppointment`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 // exports.getUpcomingAppointments = async (req, res, next) => {
