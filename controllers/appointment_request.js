@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { StatusCodes } = require('http-status-codes');
-const moment = require('moment'); 
+
 const model = require("../models/appointment_request");
 const adminUserModel = require("../models/admin_users");
 const emailModel = require("../models/email_template");
@@ -26,7 +26,6 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Add multer storage configuration at the top of the file
 const storage = multer.diskStorage({
-	
 	destination: function (req, file, cb) {
 		const uploadDir = path.join(__dirname, '../uploads/appointments');
 		if (!fs.existsSync(uploadDir)) {
@@ -274,11 +273,11 @@ exports.submitSelfAppointment = async (req, res, next) => {
 			if (data) {
 				res.status(StatusCodes.CREATED).send({
 					message: 'Appointment created',
-					data: appointmentData
+					data: data
 				});
 			} else {
 				res.status(StatusCodes.BAD_REQUEST).send({
-					message: "Failed to create appointment"
+					message: "Bad Request!"
 				});
 			}
 		} catch (e) {
@@ -406,22 +405,22 @@ exports.getAppointmentsByDate = async (req, res, next) => {
 
 
 exports.getSingleAppointmentDetails = async (req, res, next) => {
-    try {
-        const { ap_id } = req.params; // Extract id from the route parameter
-      
-        const data = await model.findOneByApId(ap_id); // Pass the correct variable to model.findOne
-        if (data && data.length > 0) { // Check if data exists and has at least one element
-            res.status(StatusCodes.OK).send(data[0]);
-        } else {
-            res.status(StatusCodes.OK).send({ message: "No appointment found with this ID." });
-        }
-    } catch (e) {
-        console.log(`Error in getSingleAppointmentDetails`, e);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-    }
+	try {
+		const { id } = req.params; // Extract id from the route parameter
+
+		// Call the model method to get appointment details by ID
+		const data = await model.findOne(id);
+
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send(data[0]); // Send the first result
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+		}
+	} catch (e) {
+		console.log(`Error in getSingleAppointmentDetails`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
 };
-
-
 
 exports.changeCheckInStatus = async (req, res, next) => {
 	try {
@@ -616,32 +615,29 @@ exports.restoreAppointment = async (req, res, next) => {
 };
 
 exports.deleteAppointment = async (req, res, next) => {
-    try {
-        const ap_id = req.params.ap_id; // Extract id from the route parameter
+	try {
+		const id = req.params.id; // Extract id from the route parameter
 
-        // Ensure id is provided
-        if (!ap_id) {
-            return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
-        }
+		// Ensure id is provided
+		if (!id) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
+		}
 
-        // Check if the appointment exists before marking it as deleted
-        const appointment = await model.findOne(ap_id); 
+		// Call the model method to update the deleted_app field
+		const data = await model.remove(id); // This will now update deleted_app to 1
 
-        // Call the model method to update the deleted_app field
-        const data = await model.updateDeletedApp(ap_id, '1'); // Update deleted_app to 1
-
-        if (data) {
-            res.status(StatusCodes.OK).send({
-                message: "Appointment marked as deleted successfully",
-                data: { ap_id, deleted_app: 1 } // Send the ID and the updated status
-            });
-        } else {
-            res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
-        }
-    } catch (e) {
-        console.log(`Error in deleteAppointment`, e);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-    }
+		if (data) {
+			res.status(StatusCodes.OK).send({
+				message: "Appointment marked as deleted successfully",
+				data: { id, deleted_app: 1 } // Send the ID and the updated status
+			});
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+		}
+	} catch (e) {
+		console.log(`Error in deleteAppointment`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
 };
 
 // exports.getUpcomingAppointments = async (req, res, next) => {
@@ -1560,8 +1556,7 @@ exports.getInboxData = async (req, res, next) => {
         if (!_.isEmpty(data)) {
             res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
         } else {
-            // res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
-			res.status(StatusCodes.OK).send({ message: "No appointments found !!" });
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
         }
     } catch (e) {
         console.error(`Error in getInboxData`, e);
@@ -1993,34 +1988,4 @@ exports.getndateAppointments = async (req, res, next) => {
 		console.log(`Error in getndateAppointments`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
-};
-
-
-exports.searchByDate = async (req, res, next) => {
-    const { from_date, to_date } = req.body;
-
-    if (!from_date || !to_date) {
-        return res.status(StatusCodes.BAD_REQUEST).send({ message: "Both from_date and to_date are required." });
-    }
-
-    try {
-        const appointments = await model.searchAppointmentsByDate(from_date, to_date);
-
-        const enhancedAppointments = appointments.map(appointment => {
-            // Assuming ap_date is coming from the DB in UTC and needs no conversion
-            const ap_date = moment.utc(appointment.ap_date); // This is correct if ap_date is a UTC date string
-            const dayOfWeek = ap_date.format('dddd'); // Gets the day of the week in UTC
-
-            return {
-                ...appointment,
-                ap_date: ap_date.format('YYYY-MM-DD'), // Ensures the date is formatted in UTC
-                day_of_week: dayOfWeek
-            };
-        });
-
-        res.status(StatusCodes.OK).send({ message: `${enhancedAppointments.length} records found`, data: enhancedAppointments });
-    } catch (error) {
-        console.error('Error in searchByDate:', error);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: error.message });
-    }
 };

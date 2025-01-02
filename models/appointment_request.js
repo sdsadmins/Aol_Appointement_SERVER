@@ -63,23 +63,22 @@ exports.updateAppointmentStatus = async (appid, status) => {
     return result;
 };
 
-exports.findOne = async (apId) => {
-    const query = `SELECT * FROM appointment_request WHERE ap_id = ? AND deleted_app = 0`; // Changed 'id' to 'ap_id'
-    return getRows(query, [apId]);
-};
+exports.findOne = async (id) => {
+    const query = `SELECT * FROM appointment_request WHERE id = ?`;
+    return getRows(query, [id]);
+}
 
+exports.insert = async (object) => {
+    const query = `INSERT INTO appointment_request SET ?`;
+    const id = await insertRow(query, object);
+    if (id > 0) {
+        return this.findOne(id);
+    }
+    else {
+        return this.findOne(object.id);
+    }
 
-exports.searchAppointmentsByDate = async (fromDate, toDate) => {
-    const query = `
-        SET @@session.time_zone = '+00:00';
-        SELECT *, CONVERT_TZ(ap_date, @@session.time_zone, '+00:00') as utc_ap_date
-        FROM appointment_request 
-        WHERE ap_date BETWEEN ? AND ? 
-        AND deleted_app = '0';
-    `;
-    return getRows(query, [fromDate, toDate]);
-};
-
+}
 
 exports.update = async (id, object) => {
     const updateKeys = [];
@@ -142,24 +141,9 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (dateString, assignTo) => {
-    // Adjust the dateString to ensure it is in the correct timezone (IST)
-    const adjustedDate = moment.tz(dateString, 'Asia/Kolkata').format('YYYY-MM-DD'); // Adjust to Indian Standard Time
+exports.getAppointmentsByDate = (dateString, assignTo) => {
     const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`;
-    const appointments = await getRows(query, [adjustedDate, assignTo]);  // Use adjusted date
-
-    // Convert appointment dates to IST
-    const timezone = 'Asia/Kolkata';
-    const adjustedAppointments = appointments.map(appointment => {
-        return {
-            ...appointment,
-            ap_date: moment(appointment.ap_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
-            from_date: moment(appointment.from_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
-            to_date: moment(appointment.to_date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ'),
-        };
-    });
-
-    return adjustedAppointments;
+    return getRows(query, [dateString, assignTo]);  // Parameters should match the order expected by the query
 };
 
 exports.findOneByApId = async (apId) => {
@@ -651,21 +635,3 @@ exports.getndateAppointments = async (user_id, show_appts_of, location, datestri
     // Execute query
     return getRows(query, params);
 }
-
-exports.searchAppointmentsByDate = async (fromDate, toDate) => {
-    const query = `
-        SELECT * 
-        FROM appointment_request 
-        WHERE ap_date BETWEEN ? AND ? 
-        AND deleted_app = '0'`; // Ensure only non-deleted appointments are returned
-    return getRows(query, [fromDate, toDate]);
-};
-exports.insert = async (object) => {
-    const query = `INSERT INTO appointment_request SET ?`;
-    const id = await insertRow(query, object);
-    if (id > 0) {
-        return this.findOne(id);
-    } else {
-        return null;
-    }
-};
