@@ -480,45 +480,21 @@ exports.changePassword = async (req, res, next) => {
     }
 };
 
-// exports.getUserData = async (req, res, next) => {
-//     try {
-//         const userId = req.params.user_id; // Get user_id from request parameters
-//         const data = await model.findOne(userId); // Fetch user data using the model
-
-//         if (!_.isEmpty(data)) {
-//             res.status(StatusCodes.OK).send(data[0]); // Send the user data
-//         } else {
-//             res.status(StatusCodes.NOT_FOUND).send({ message: "User not found" });
-//         }
-//     } catch (e) {
-//         console.log(`Error in getUserData`, e);
-//         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-//     }
-// };
-
-
 exports.getUserData = async (req, res, next) => {
     try {
         const userId = req.params.user_id; // Get user_id from request parameters
         const data = await model.findOne(userId); // Fetch user data using the model
 
         if (!_.isEmpty(data)) {
-            // Add the full path to the photo field
-            const user = data[0]; // Assuming data is an array and we're accessing the first element
-            if (user.photo) {
-                user.photo = `uploads/${user.photo}`;
-            }
-
-            res.status(StatusCodes.OK).send(user); // Send the updated user data
+            res.status(StatusCodes.OK).send(data[0]); // Send the user data
         } else {
             res.status(StatusCodes.NOT_FOUND).send({ message: "User not found" });
         }
     } catch (e) {
-        console.error("Error in getUserData", e);
+        console.log(`Error in getUserData`, e);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
-
 
 exports.decryptAndUpdateSingleUser = async (req, res) => {
     try {
@@ -636,8 +612,6 @@ const uploadProfile = multer({
     }
 }).single("photo"); // Expecting a file field named 'photo'
 
-
-
 exports.updateProfile = async (req, res) => {
     try {
         const id = req.params.user_id;
@@ -687,6 +661,3 @@ exports.updateProfile = async (req, res) => {
         });
     }
 };
-
-
-

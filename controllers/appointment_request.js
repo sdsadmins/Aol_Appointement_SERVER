@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { StatusCodes } = require('http-status-codes');
-const moment = require('moment'); 
+
 const model = require("../models/appointment_request");
 const adminUserModel = require("../models/admin_users");
 const emailModel = require("../models/email_template");
@@ -26,7 +26,6 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Add multer storage configuration at the top of the file
 const storage = multer.diskStorage({
-	
 	destination: function (req, file, cb) {
 		const uploadDir = path.join(__dirname, '../uploads/appointments');
 		if (!fs.existsSync(uploadDir)) {
@@ -274,11 +273,11 @@ exports.submitSelfAppointment = async (req, res, next) => {
 			if (data) {
 				res.status(StatusCodes.CREATED).send({
 					message: 'Appointment created',
-					data: appointmentData
+					data: data
 				});
 			} else {
 				res.status(StatusCodes.BAD_REQUEST).send({
-					message: "Failed to create appointment"
+					message: "Bad Request!"
 				});
 			}
 		} catch (e) {
@@ -406,22 +405,22 @@ exports.getAppointmentsByDate = async (req, res, next) => {
 
 
 exports.getSingleAppointmentDetails = async (req, res, next) => {
-    try {
-        const { ap_id } = req.params; // Extract id from the route parameter
-      
-        const data = await model.findOneByApId(ap_id); // Pass the correct variable to model.findOne
-        if (data && data.length > 0) { // Check if data exists and has at least one element
-            res.status(StatusCodes.OK).send(data[0]);
-        } else {
-            res.status(StatusCodes.OK).send({ message: "No appointment found with this ID." });
-        }
-    } catch (e) {
-        console.log(`Error in getSingleAppointmentDetails`, e);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-    }
+	try {
+		const { id } = req.params; // Extract id from the route parameter
+
+		// Call the model method to get appointment details by ID
+		const data = await model.findOne(id);
+
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send(data[0]); // Send the first result
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+		}
+	} catch (e) {
+		console.log(`Error in getSingleAppointmentDetails`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
 };
-
-
 
 exports.changeCheckInStatus = async (req, res, next) => {
 	try {
@@ -616,32 +615,29 @@ exports.restoreAppointment = async (req, res, next) => {
 };
 
 exports.deleteAppointment = async (req, res, next) => {
-    try {
-        const ap_id = req.params.ap_id; // Extract id from the route parameter
+	try {
+		const id = req.params.id; // Extract id from the route parameter
 
-        // Ensure id is provided
-        if (!ap_id) {
-            return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
-        }
+		// Ensure id is provided
+		if (!id) {
+			return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
+		}
 
-        // Check if the appointment exists before marking it as deleted
-        const appointment = await model.findOne(ap_id); 
+		// Call the model method to update the deleted_app field
+		const data = await model.remove(id); // This will now update deleted_app to 1
 
-        // Call the model method to update the deleted_app field
-        const data = await model.updateDeletedApp(ap_id, '1'); // Update deleted_app to 1
-
-        if (data) {
-            res.status(StatusCodes.OK).send({
-                message: "Appointment marked as deleted successfully",
-                data: { ap_id, deleted_app: 1 } // Send the ID and the updated status
-            });
-        } else {
-            res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
-        }
-    } catch (e) {
-        console.log(`Error in deleteAppointment`, e);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-    }
+		if (data) {
+			res.status(StatusCodes.OK).send({
+				message: "Appointment marked as deleted successfully",
+				data: { id, deleted_app: 1 } // Send the ID and the updated status
+			});
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+		}
+	} catch (e) {
+		console.log(`Error in deleteAppointment`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
 };
 
 // exports.getUpcomingAppointments = async (req, res, next) => {
@@ -1179,160 +1175,206 @@ exports.schedule_appointment = async (req, res, next) => {
             to_be_opt, 
             stopsendemailmessage, 
             send_vds, 
-            stay_avail,
-            referenceEmail,
-            full_name,
-            no_people,
-            for_the_loc
+            stay_avail 
         } = req.body;
+
+        // Set the email address to send to
+        const referenceEmail = 'alvita.work@gmail.com';
 
         // Get Appointment Data By ID
         const app_data = await model.findOneById(appid);
 
         // Get Logged in User data
         const sec_data = await adminUserModel.findOne(admin_user_id);
-        const secretary_user_location = sec_data[0].user_location;
-        const secretary_user_name = sec_data[0].full_name;
-        const extra_sign = sec_data[0].extra_sign;
+        let secretary_user_location = sec_data[0].user_location;
+        let secretary_user_name = sec_data[0].full_name;
+        let extra_sign = sec_data[0].extra_sign;
 
-        const ap_location = app_data[0].ap_location;
+        let ap_location = app_data[0].ap_location;
 
         // Conditional QR Code Generation
-        let qrCodeData = ap_location === 1 ? venue : app_data[0].id.toString();
-        const qrCodeBase64 = await generateQRCode(qrCodeData);
-
-        if (!qrCodeBase64) {
-            console.error('Failed to generate QR code.');
-            return res.status(500).send({ message: 'QR Code generation failed' });
+        let qrCodeData;
+        if (ap_location === 1) {
+            qrCodeData = venue;  // Use venue for QR code if ap_location is 1
+        } else {
+            qrCodeData = app_data[0].id.toString();  // Use appid for QR code otherwise
         }
+        const qrCodeBase64 = await generateQRCode(qrCodeData); 
 
-        console.log('Generated QR Code Base64:', qrCodeBase64);
+        // Log the base64 string for debugging
+        console.log('QR Code Base64:', qrCodeBase64);
 
-        // Process appointment status
         let ap_status = app_data[0].ap_status;
-        let rescheduled_app = '';
-        let approve_status = '';
+        let logaptStatus = ap_status;
+        let approve_status = "";
+        let rescheduled_app = "";
 
-        if (['Scheduled', 'TB R/S', 'SB', 'GK', 'PB'].includes(ap_status)) {
-            rescheduled_app = 'Rescheduled';
+        // Determine the approval status based on ap_status
+        if(ap_status == "Scheduled"){
+            rescheduled_app = "Rescheduled";
+        } else if(ap_status == "Pending"){
+            rescheduled_app = "Scheduled";
+        } else if(ap_status=="TB R/S"){
+            rescheduled_app = "Rescheduled";
+        } else if(ap_status == "SB"){
+            rescheduled_app = "Rescheduled";
+        } else if(ap_status == "GK"){
+            rescheduled_app = "Rescheduled";
+        } else if(ap_status == "PB"){
+            rescheduled_app = "Rescheduled";
+        } else {
+            rescheduled_app = null;
         }
 
+        if(ap_date && ap_time){
+            approve_status = "Scheduled";
+            logaptStatus = "Scheduled";
+        }
+
+        if(ap_date && ap_time && ap_status == "SB"){
+            approve_status = "SB";
+            logaptStatus = "Rescheduled";
+        }
+
+        if(ap_date && ap_time && ap_status == "GK"){
+            approve_status = "GK";
+            logaptStatus = "Rescheduled";
+        }
+
+        if(ap_date && ap_time && ap_status == "PB"){
+            approve_status = "PB";
+            logaptStatus = "Rescheduled";
+        }
+
+        if(to_be_opt){
+            approve_status = "TB R/S";
+            logaptStatus = "Rescheduled";
+        }
+
+        if(rescheduled_app == "Rescheduled"){
+            logaptStatus = "Rescheduled";
+        }
+
+        let date_time = '';
         if (ap_date && ap_time) {
-            approve_status = 'Scheduled';
-            if (['SB', 'GK', 'PB'].includes(ap_status)) {
-                approve_status = ap_status;
-            }
-        }
-
-        if (to_be_opt) {
-            approve_status = 'TB R/S';
+            date_time = `${ap_date} ${ap_time}`;
         }
 
         const data = {
             ap_status: approve_status || null,
             ap_date: ap_date,
-            app_visit: venue,
+            app_visit: venue, 
             mtype: meet_type,
             deleted_app: '0',
-            slotted_by: admin_user_id,
-            stay_avail: stay_avail ? 'Yes' : ''
+            slotted_by: admin_user_id
         };
 
-        if (ap_time) {
-            const dateTime = `${ap_date} ${ap_time}`;
-            data.ap_time = new Date(dateTime).getTime() / 1000;
+        if(stay_avail){
+            data.stay_avail = "Yes";
+        } else {
+            data.stay_avail = "";
         }
 
-        if (rescheduled_app === 'Rescheduled') {
-            data.admit_status = '';
-            data.admitted_by = '0';
+        if (ap_time !== '') {
+            data.ap_time = new Date(date_time).getTime() / 1000;
+        }
+
+        if(rescheduled_app == "Rescheduled"){
+            data.admit_status = "";
+            data.admitted_by = "0";
         }
 
         const result = await model.update(app_data[0].id, data);
 
         if (result) {
+            // Generate QR Code
+            const qrCodeBase64 = await generateQRCode(qrCodeData); 
+
+            // Log the base64 string for debugging
+            console.log('QR Code Base64:', qrCodeBase64);
+
             // Save QR Code image to file
-            const uploadsDir = path.join(__dirname, '../uploads');
-            const qrCodeImagePath = path.join(uploadsDir, `qr_code_${appid}.png`);
-            const base64Image = qrCodeBase64.replace(/^data:image\/png;base64,/, '');
+            const qrCodeImagePath = path.join(uploadsDir, `qr_code_${appid}.png`); // Define the path for the QR code image
+            console.log('QR Code image path:', qrCodeImagePath); // Log the file path
+            const base64Image = qrCodeBase64.replace(/^data:image\/png;base64,/, ""); // Clean the base64 string
 
             // Ensure the uploads directory exists
             if (!fs.existsSync(uploadsDir)) {
                 fs.mkdirSync(uploadsDir, { recursive: true });
+                console.log('Uploads directory created:', uploadsDir);
             }
 
+            // Write the base64 data to a file
+            fs.writeFileSync(qrCodeImagePath, base64Image, 'base64');
+            console.log('QR Code image saved successfully at:', qrCodeImagePath);
+
+            // Create email template with properly formatted QR code
+            const emailBody = `
+                <html>
+                <body>
+                    <h1>Appointment Scheduled</h1>
+                    <p>Your appointment has been scheduled successfully.</p>
+                    <p><strong>Venue:</strong> ${venue}</p>
+                    <p><strong>Date & Time:</strong> ${ap_date} ${ap_time}</p>
+                    <p>Please present this QR code during your appointment:</p>
+                    <img src="cid:qr_code_image" alt="QR Code" style="width:200px;height:200px;"/>
+                </body>
+                </html>
+            `;
+
+            // Send email and capture the result
+            let emailResult;
             try {
-                fs.writeFileSync(qrCodeImagePath, base64Image, 'base64');
-                console.log('QR Code image saved successfully at:', qrCodeImagePath);
-            } catch (err) {
-                console.error('Error saving QR Code image:', err);
-                return res.status(500).send({ message: 'Failed to save QR Code image.' });
-            }
-
-            // Fetch the email template
-            const emailTemplateModel = require('../models/email_template');
-            const emailTemplate = await emailTemplateModel.findOne(for_the_loc === 'IND' ? 8 : 35);
-
-            if (!emailTemplate || emailTemplate.length === 0) {
-                console.error('Email template not found');
-                return res.status(500).send({ message: 'Email template not found' });
-            }
-
-            // Embed QR code in email body using the cid
-            const emailBody = emailTemplate[0].template_data
-                .replace('{$full_name}', full_name)
-                .replace('{$AID}', appid)
-                .replace('{$date}', ap_date)
-                .replace('{$time}', ap_time)
-                .replace('{$no_people}', no_people)
-                .replace('{$app_location}', venue)
-                .replace('{$qr_code}', `<img src="cid:qr_code_image" alt="QR Code" />`); // Embed QR code
-
-            try {
-                const emailResult = await emailService.sendMailer(
-                    referenceEmail,
+                emailResult = await emailService.sendMailer(
+                    referenceEmail, // Send to alvita.work@gmail.com
                     'Appointment Scheduled',
                     emailBody,
                     {
                         attachments: [
                             {
                                 filename: `qr_code_${appid}.png`,
-                                content: qrCodeBase64.split(",")[1], // Extract base64 content
-                                encoding: 'base64',
-                                cid: 'qr_code_image' // Content ID for embedding in email
+                                path: qrCodeImagePath, // Attach the QR code image from uploads directory
+                                cid: 'qr_code_image' // Use a Content-ID for embedding in the email body
                             }
                         ]
                     }
                 );
-
                 console.log('Email sent successfully:', emailResult);
-
-                // Respond with success
-                res.status(200).send({ 
-                    message: 'Appointment scheduled successfully.',
-                    emailResult,
-                    qrCode: {
-                        data: qrCodeData,
-                        image: qrCodeBase64,
-                        appointmentId: appid,
-                        venue: venue,
-                        generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
-                    }
-                });
             } catch (emailError) {
                 console.error('Error sending email:', emailError);
-                return res.status(500).send({ 
-                    message: 'Failed to send email with QR code.',
-                    error: emailError.message 
-                });
+                return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Failed to send email with QR code.' });
             }
+
+            // Clean up the temporary QR code image file
+            // Commenting out the deletion to keep the image
+            // try {
+            //     fs.unlinkSync(qrCodeImagePath);
+            //     console.log('Temporary QR code image file deleted successfully.');
+            // } catch (unlinkError) {
+            //     console.error('Error deleting temporary QR code image file:', unlinkError);
+            // }
+
+            // Send response with both email result and QR code data
+            res.status(StatusCodes.OK).send({ 
+                message: 'Appointment scheduled successfully.',
+                emailResult, // Now this variable is defined
+                qrCode: {
+                    data: qrCodeData,
+                    image: qrCodeBase64,
+                    appointmentId: appid,
+                    venue: venue,
+                    generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
+                }
+            });
         } else {
-            res.status(500).send({ message: 'Failed to schedule appointment!' });
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
+                message: 'Failed to schedule appointment!' 
+            });
         }
     } catch (error) {
         console.error('Error in schedule_appointment:', error);
-        res.status(500).send({ 
-            message: 'An error occurred while scheduling the appointment.',
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ 
+            message: 'An error occurred while scheduling the appointment',
             error: error.message 
         });
     }
@@ -1560,8 +1602,7 @@ exports.getInboxData = async (req, res, next) => {
         if (!_.isEmpty(data)) {
             res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
         } else {
-            // res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
-			res.status(StatusCodes.OK).send({ message: "No appointments found !!" });
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
         }
     } catch (e) {
         console.error(`Error in getInboxData`, e);
@@ -1993,34 +2034,4 @@ exports.getndateAppointments = async (req, res, next) => {
 		console.log(`Error in getndateAppointments`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
-};
-
-
-exports.searchByDate = async (req, res, next) => {
-    const { from_date, to_date } = req.body;
-
-    if (!from_date || !to_date) {
-        return res.status(StatusCodes.BAD_REQUEST).send({ message: "Both from_date and to_date are required." });
-    }
-
-    try {
-        const appointments = await model.searchAppointmentsByDate(from_date, to_date);
-
-        const enhancedAppointments = appointments.map(appointment => {
-            // Assuming ap_date is coming from the DB in UTC and needs no conversion
-            const ap_date = moment.utc(appointment.ap_date); // This is correct if ap_date is a UTC date string
-            const dayOfWeek = ap_date.format('dddd'); // Gets the day of the week in UTC
-
-            return {
-                ...appointment,
-                ap_date: ap_date.format('YYYY-MM-DD'), // Ensures the date is formatted in UTC
-                day_of_week: dayOfWeek
-            };
-        });
-
-        res.status(StatusCodes.OK).send({ message: `${enhancedAppointments.length} records found`, data: enhancedAppointments });
-    } catch (error) {
-        console.error('Error in searchByDate:', error);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: error.message });
-    }
 };
