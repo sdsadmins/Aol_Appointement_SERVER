@@ -8,6 +8,9 @@ const cors = require('cors');
 var fileUpload = require('express-fileupload');
 const app = express();
 
+
+
+// const __dirname = dirname(__filename);
 const port = process.env.PORT || 80;
 //const port_https = process.env.PORT_HTTPS || 443;
 const routes = require('./routes');
@@ -44,7 +47,7 @@ app.use(logger('dev'));
 
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-
+app.use(express.static(__dirname + '/uploads'));
 app.use("/api/v1", routes);
 app.use('/favicon.ico', (req, res) => {
     res.status(StatusCodes.OK).send();
