@@ -54,7 +54,7 @@ router.put('/updateAppointmentAdmin/:ap_id', checkAuth, controller.updateAppoint
 router.post('/change_appointment_star', checkAuth, controller.changeAppointmentStar);
 
 
-router.post('/schedule_appointment', controller.schedule_appointment);
+router.post('/schedule_appointment', checkAuth, controller.schedule_appointment);
 router.get('/appointmentsByDate/:assign_to/:datestring', checkAuth, controller.getAppointmentsByDate);
 
 
