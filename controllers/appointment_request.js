@@ -27,7 +27,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Add multer storage configuration at the top of the file
 const storage = multer.diskStorage({
 	destination: function (req, file, cb) {
-		const uploadDir = path.join(__dirname, '../uploads/appointments');
+		const uploadDir = path.join(__dirname, '../uploads');
 		if (!fs.existsSync(uploadDir)) {
 			fs.mkdirSync(uploadDir, { recursive: true });
 		}
