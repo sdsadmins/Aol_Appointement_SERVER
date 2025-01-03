@@ -615,29 +615,32 @@ exports.restoreAppointment = async (req, res, next) => {
 };
 
 exports.deleteAppointment = async (req, res, next) => {
-	try {
-		const id = req.params.id; // Extract id from the route parameter
+    try {
+        const ap_id = req.params.ap_id; // Extract id from the route parameter
 
-		// Ensure id is provided
-		if (!id) {
-			return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
-		}
+        // Ensure id is provided
+        if (!ap_id) {
+            return res.status(StatusCodes.BAD_REQUEST).send({ message: "ID is required" });
+        }
 
-		// Call the model method to update the deleted_app field
-		const data = await model.remove(id); // This will now update deleted_app to 1
+        // Check if the appointment exists before marking it as deleted
+        const appointment = await model.findOne(ap_id); 
 
-		if (data) {
-			res.status(StatusCodes.OK).send({
-				message: "Appointment marked as deleted successfully",
-				data: { id, deleted_app: 1 } // Send the ID and the updated status
-			});
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
-		}
-	} catch (e) {
-		console.log(`Error in deleteAppointment`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+        // Call the model method to update the deleted_app field
+        const data = await model.updateDeletedApp(ap_id, '1'); // Update deleted_app to 1
+
+        if (data) {
+            res.status(StatusCodes.OK).send({
+                message: "Appointment marked as deleted successfully",
+                data: { ap_id, deleted_app: 1 } // Send the ID and the updated status
+            });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "Appointment not found" });
+        }
+    } catch (e) {
+        console.log(`Error in deleteAppointment`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 // exports.getUpcomingAppointments = async (req, res, next) => {
@@ -1857,15 +1860,15 @@ async function generateQRCode(data) {
 exports.updateAssignToFill = async (req, res, next) => {
     try {
         const ap_id = req.params.ap_id; // Extract ap_id from the route parameter
-        const { name } = req.body; // Extract name from the request body
+        const { name, assignToFill } = req.body; // Extract name and assignToFill from the request body
 
-        console.log("Request Parameters:", { ap_id, name });
+        console.log("Request Parameters:", { ap_id, name, assignToFill });
 
         if (!name) {
             return res.status(StatusCodes.BAD_REQUEST).send({ message: "Name is required" });
         }
 
-        const updateResult = await model.updateAssignToFill(ap_id, name); // Call the model method
+        const updateResult = await model.updateAssignToFill(ap_id, name, assignToFill); // Call the model method
         
         console.log("Update Result:", updateResult);
 
@@ -2024,7 +2027,7 @@ exports.getInboxData = async (req, res, next) => {
             if (value.for_ap === 'me') {
                 Object.assign(data[key], {
                     full_name: userData.full_name || '',
-                    photo: userData.photo || '',
+                    photo: userData.photo ? `${userData.photo}` : 'default.png', // Modified
                     designation: userData.designation || '',
                     ref_name: value.ref_name,
                     ref_country_code: value.ref_country_code,
@@ -2037,7 +2040,7 @@ exports.getInboxData = async (req, res, next) => {
             } else {
                 Object.assign(data[key], {
                     full_name: value.full_name,
-                    photo: value.picture,
+                    photo: value.picture ? `${value.picture}` : 'default.png', // Modified
                     designation: value.designation,
                     ref_name: userData.full_name || '',
                     ref_country_code: userData.country_code || '',
@@ -2071,6 +2074,7 @@ exports.getInboxData = async (req, res, next) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
+
 
 // Divya --added on 23 Dec 2024
 // exports.getInboxData = async (req, res, next) => {

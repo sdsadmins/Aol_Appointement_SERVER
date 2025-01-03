@@ -35,7 +35,7 @@ const allowCrossDomain = function (req, res, next) {
 };
 app.use(cors());
 app.use(allowCrossDomain);
-app.use(express.static(__dirname + '/uploads'));
+app.use("/api/v1",express.static(__dirname + '/uploads'));
 // Error logger
 app.use(logger('dev', {
     skip: function (req, res) { return res.statusCode < 400 },
@@ -70,6 +70,7 @@ http.createServer(app).listen(port, () => {
 });
 
 // Create an HTTPS service identical to the HTTP service. Uncomment below line
+
 // const options = {
 //    key: fs.readFileSync('/domain.com.key'),
 //    cert: fs.readFileSync('/certificate.crt')
