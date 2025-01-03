@@ -1793,9 +1793,7 @@ exports.schedule_appointment = async (req, res, next) => {
 
 					try{
 						const emailResult = await emailService.sendMailer(
-							// referenceEmail,
-							"dsarigam1709@gmail.com",
-							//email_id,
+							email_id,
 							subject,
 							templateData,
 							{
