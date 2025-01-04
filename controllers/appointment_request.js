@@ -1519,7 +1519,7 @@ exports.getInboxData = async (req, res, next) => {
             if (value.for_ap === 'me') {
                 Object.assign(data[key], {
                     full_name: userData.full_name || '',
-                    photo: userData.photo ? `${userData.photo}` : 'default.png', // Modified
+                    photo: userData.photo ? `${userData.photo}` : '', // Modified
                     designation: userData.designation || '',
                     ref_name: value.ref_name,
                     ref_country_code: value.ref_country_code,
@@ -1532,7 +1532,7 @@ exports.getInboxData = async (req, res, next) => {
             } else {
                 Object.assign(data[key], {
                     full_name: value.full_name,
-                    photo: value.picture ? `${value.picture}` : 'default.png', // Modified
+                    photo: value.picture ? `${value.picture}` : '', // Modified
                     designation: value.designation,
                     ref_name: userData.full_name || '',
                     ref_country_code: userData.country_code || '',
