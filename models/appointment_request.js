@@ -342,8 +342,8 @@ exports.filterAppointmentsByAssignedStatus = async (assignToFill, offset, pageSi
 };
 
 exports.getDoneAppointments = async (offset, pageSize) => {
-    const query = `SELECT * FROM appointment_request WHERE ap_status = 'Done' LIMIT ?, ?`;
-    const countQuery = `SELECT COUNT(*) as total FROM appointment_request WHERE ap_status = 'Done'`; // Count query for Done appointments
+    const query = `SELECT * FROM appointment_request WHERE ap_status = 'Done' AND deleted_app = 0 LIMIT ?, ?`;
+    const countQuery = `SELECT COUNT(*) as total FROM appointment_request WHERE ap_status = 'Done' AND deleted_app = 0`; // Count query for Done appointments
     const countResult = await getRows(countQuery); // Execute count query
     const data = await getRows(query, [offset, pageSize]); // Execute data query
     return {
