@@ -1112,7 +1112,8 @@ exports.getDoneAppointments = async (req, res, next) => {
 		const pageSize = parseInt(req.body.pageSize) || 10;
 		const offset = (pageNo - 1) * pageSize;
 
-		const { totalCount, data } = await model.getDoneAppointments(offset, pageSize);
+		// Updated query to exclude deleted appointments
+		const { totalCount, data } = await model.getDoneAppointments(offset, pageSize, 0); // Pass 0 to include only non-deleted appointments
 		res.status(StatusCodes.OK).send({
 			pageNo,
 			pageSize,
