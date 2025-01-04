@@ -25,7 +25,7 @@ router.post('/make_appointment_done', checkAuth, controller.makeAppointmentDone)
 router.post('/make_undone', checkAuth, controller.makeAppointmentUndone);
 router.post('/more_info_appointment/:user_id', checkAuth, controller.moreInfoAppointment);
 router.get('/restore_appointment/:ap_id', checkAuth, controller.restoreAppointment);
-router.delete('/deleteAppointment/:id', checkAuth, controller.deleteAppointment);
+router.post('/deleteAppointment/:ap_id', checkAuth, controller.deleteAppointment);
 router.get('/getAppointmentTomorrow/:assign_to/:location_id', checkAuth, controller.getTomorrowsAppointmentsData);
 
 router.get('/todayAppointments/:assign_to/:location_id/:date', checkAuth, controller.getTodayAppointments);
@@ -54,7 +54,7 @@ router.put('/updateAppointmentAdmin/:ap_id', checkAuth, controller.updateAppoint
 router.post('/change_appointment_star', checkAuth, controller.changeAppointmentStar);
 
 
-router.post('/schedule_appointment', checkAuth, controller.schedule_appointment);
+router.post('/schedule_appointment', controller.schedule_appointment);
 router.get('/appointmentsByDate/:assign_to/:datestring', checkAuth, controller.getAppointmentsByDate);
 
 
