@@ -718,6 +718,67 @@ exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 };
 
 
+exports.getUpcomingAppointmentsByMonthYear = async (req, res, next) => {
+    try {
+        const { month, year, uid } = req.query;
+
+        // Validate month, year, and uid
+        if (!month || !year || isNaN(month) || isNaN(year)) {
+            return res.status(StatusCodes.BAD_REQUEST).send({
+                message: "Invalid month or year. Please provide valid numeric values."
+            });
+        }
+
+        if (!uid || isNaN(uid)) {
+            return res.status(StatusCodes.BAD_REQUEST).send({
+                message: "Invalid user ID (uid). Please provide a valid numeric value."
+            });
+        }
+
+        const inputMonth = parseInt(month, 10);
+        const inputYear = parseInt(year, 10);
+        const inputUid = parseInt(uid, 10);
+
+        // Ensure the month is between 1 and 12
+        if (inputMonth < 1 || inputMonth > 12) {
+            return res.status(StatusCodes.BAD_REQUEST).send({
+                message: "Invalid month. Please provide a value between 1 and 12."
+            });
+        }
+
+        // Fetch data from the model
+        const data = await model.getUpcomingAppointmentsByMonthYear(inputMonth, inputYear, inputUid);
+
+        // If data is found, format and return the response
+        if (data && data.length > 0) {
+            res.status(StatusCodes.OK).send({
+                message: "Upcoming appointment dates retrieved successfully",
+                totalCount: data.length,
+                data: data.map(item => ({
+                    appointment_date: item.appointment_date,
+                    app_count: item.app_count
+                }))
+            });
+        } else {
+            // No data found
+            res.status(StatusCodes.NOT_FOUND).send({
+                message: "No upcoming appointment dates found for the specified month and year.",
+                totalCount: 0,
+                data: []
+            });
+        }
+    } catch (e) {
+        // Handle errors
+        console.error(`Error in getUpcomingAppointmentsByMonthYear`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+            message: e.message
+        });
+    }
+};
+
+
+
+
 exports.getRightNavCount = async (req, res, next) => {
 	try {
 		const userId = req.params.user_id; // Extract user ID from the route parameter
