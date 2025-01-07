@@ -57,6 +57,6 @@ router.post('/change_appointment_star', checkAuth, controller.changeAppointmentS
 router.post('/schedule_appointment', controller.schedule_appointment);
 router.get('/appointmentsByDate/:assign_to/:datestring', checkAuth, controller.getAppointmentsByDate);
 
-router.post('/searchByDate', checkAuth, controller.searchByDate);
+router.post('/searchByDate', checkAuth, controller.searchByDate);router.post('/updateCheckInStatus', checkAuth, controller.updateCheckInStatus);
 
 module.exports = router;
