@@ -3,6 +3,7 @@ const SqlString = require('sqlstring');
 const validationDto = require('../dto/appointment_request.dto');
 const _ = require('lodash');
 const moment = require('moment-timezone');
+const userModel = require("../models/users_reg");
  // Ensure this path is correct
 
 // exports.find = async (offset, pageSize) => {
@@ -141,9 +142,21 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = (dateString, assignTo) => {
+exports.getAppointmentsByDate = async (dateString, assignTo) => {
     const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`;
-    return getRows(query, [dateString, assignTo]);  // Parameters should match the order expected by the query
+    const appointments = await getRows(query, [dateString, assignTo]);  // Parameters should match the order expected by the query
+    
+    // Fetch user data for each appointment
+    const userPromises = appointments.map(async (appointment) => {
+        const userData = await userModel.findOne(appointment.user_id); // Fetch user data
+        return {
+            ...appointment,
+            user: userData[0] || null // Add user data to the appointment
+        };
+    });
+
+    // Wait for all user data to be fetched
+    return await Promise.all(userPromises);
 };
 
 exports.findOneByApId = async (apId) => {
@@ -643,5 +656,20 @@ exports.getndateAppointments = async (user_id, show_appts_of, location, datestri
 
 
     // Execute query
-    return getRows(query, params);
+    const appointments = await getRows(query, params);
+
+    // Fetch user data for each appointment
+    const userPromises = appointments.map(async (appointment) => {
+        const userData = await userModel.findOne(appointment.user_id); // Fetch user data
+        return {
+            ...appointment,
+            user: userData[0] || null // Add user data to the appointment
+        };
+    });
+
+    // Wait for all user data to be fetched
+    const appointmentsWithUserData = await Promise.all(userPromises);
+
+    // Return the appointments with user data
+    return appointmentsWithUserData;
 }
