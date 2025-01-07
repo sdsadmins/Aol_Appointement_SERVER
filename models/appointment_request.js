@@ -294,7 +294,17 @@ exports.getStarredAppointments = async () => {
         const results = await getRows(query);
         console.log('Query results:', results);
 
-        return results;
+        // Fetch user data for each starred appointment
+        const userPromises = results.map(async (appointment) => {
+            const userData = await userModel.findOne(appointment.user_id); // Fetch user data
+            return {
+                ...appointment,
+                user: userData[0] || null // Add user data to the appointment
+            };
+        });
+
+        // Wait for all user data to be fetched
+        return await Promise.all(userPromises);
     } catch (error) {
         console.error('Database error:', error);
         throw error;
