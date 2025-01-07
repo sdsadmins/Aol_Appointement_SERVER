@@ -13,24 +13,57 @@ const multer = require('multer');
 const crypto = require('crypto');
 const { sendMailer } = require('../services/emailService');
 const fs = require('fs');
+const AWS = require('aws-sdk');
 
-
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadDir = path.join(__dirname, '../uploads');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        const fileName = `${Date.now() + file.originalname}`;
-        cb(null, fileName);
-    },
+// Configure AWS S3 
+AWS.config.update({
+    accessKeyId: process.env.AWS_S3_ACCESSKEYID,
+    secretAccessKey: process.env.AWS_S3_SECRETACCESSKEYID,
+    region: process.env.REGION // Ensure you have the correct region
 });
 
-const upload = multer({
+const s3 = new AWS.S3(); // Create S3 instance
+
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         const uploadDir = path.join(__dirname, '../uploads');
+//         if (!fs.existsSync(uploadDir)) {
+//             fs.mkdirSync(uploadDir, { recursive: true });
+//         }
+//         cb(null, uploadDir);
+//     },
+//     filename: function (req, file, cb) {
+//         const fileName = `${Date.now() + file.originalname}`;
+//         cb(null, fileName);
+//     },
+// });
+const storage = multer.memoryStorage();
+
+const upload = (req, res, next) => {
+    const file = req.file; // Get the file from the request
+    if (!file) { // Check if the file is present
+        return res.status(400).send({ message: "No file uploaded" }); // Handle missing file
+    }
+    const uploadParams = {
+        Bucket: process.env.AWS_S3_BUCKETNAME,
+        Key: `${Date.now()}_${file.originalname}`, // Unique file name
+        Body: file.buffer, // File buffer
+        ContentType: file.mimetype // Set the content type
+    };
+
+    // Upload to S3
+    s3.upload(uploadParams, (err, data) => {
+        if (err) {
+            console.error("Error uploading to S3:", err); // Log the full error object
+            return res.status(500).send({ message: "Error uploading file", error: err }); // Include error details in the response
+        }
+        // File uploaded successfully, proceed with registration
+        req.file = { filename: data.Key }; // Store the S3 file name
+        next(); // Call the next middleware
+    });
+};
+
+const uploadProfile = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
         const allowedExtensions = [".jpg", ".jpeg"];
@@ -44,22 +77,15 @@ const upload = multer({
     limits: {
         fileSize: 2 * 1024 * 1024 // 2 MB limit for file size (adjust as needed)
     }
-}).single("photo");
-
-// Initialize multer
-// const upload = multer({
-//     storage: storage,
-
-// });
+}).single("photo"); // Expecting a file field named 'photo'
 
 exports.register = async (req, res) => {
     console.log("Middleware triggered");
 
-    // Assuming 'upload' is a configured multer instance for handling file uploads
-    upload(req, res, async (err) => {
+    uploadProfile(req, res, async (err) => {
         if (err) {
             console.log("Error during file upload:", err);
-            return res.status(500).json({
+            return res.status(400).json({
                 message: "Invalid file format. Only JPEG/JPG images are allowed",
                 error: err,
             });
@@ -84,22 +110,40 @@ exports.register = async (req, res) => {
             const saltRounds = 10;
             const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
-            const userDataToSave = {
-                ...userData,
-                password: hashedPassword,
-                photo: req.file.filename  // Store the filename of the uploaded photo
+            // Ensure the file is being uploaded correctly
+            const uploadParams = {
+                Bucket: process.env.AWS_S3_BUCKETNAME,
+                Key: `${Date.now()}_${req.file.originalname}`, // Unique file name
+                Body: req.file.buffer, // Ensure the file buffer is correctly set
+                ContentType: req.file.mimetype, // Set the content type
             };
 
-            const data = await model.insert(userDataToSave);
+            // Upload to S3
+            s3.upload(uploadParams, async (err, uploadData) => {
+                if (err) {
+                    console.error("Error uploading to S3:", err);
+                    return res.status(500).send({ message: "Error uploading file" });
+                }
+                // File uploaded successfully, proceed with registration
+                const s3Url = uploadData.Location; // Get the S3 URL
+                const userDataToSave = {
+                    ...userData,
+                    password: hashedPassword,
+                    photo: s3Url  // Store the full S3 URL
+                };
 
-            if (data) {
-                return res.status(201).send({
-                    message: 'User registered successfully',
-                    data: data
-                });
-            } else {
-                return res.status(400).send({ message: "Registration failed" });
-            }
+                const insertData = await model.insert(userDataToSave);
+                console.log("S3 Upload Result:", insertData);
+
+                if (insertData) {
+                    return res.status(201).send({
+                        message: 'User registered successfully',
+                        data: insertData
+                    });
+                } else {
+                    return res.status(400).send({ message: "Registration failed" });
+                }
+            });
         } catch (error) {
             console.error('Error in register:', error);
             return res.status(500).send({ message: error.message });
@@ -596,26 +640,11 @@ exports.forgotPassword = async (req, res) => {
     }
 };
 
-const uploadProfile = multer({
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-        const allowedExtensions = [".jpg", ".jpeg"];
-        const extension = path.extname(file.originalname);
-        if (!allowedExtensions.includes(extension)) {
-            cb(new Error("Only JPEG/JPG images are allowed"));
-        } else {
-            cb(null, true);
-        }
-    },
-    limits: {
-        fileSize: 2 * 1024 * 1024 // 2 MB limit for file size (adjust as needed)
-    }
-}).single("photo"); // Expecting a file field named 'photo'
-
 exports.updateProfile = async (req, res) => {
     try {
         const id = req.params.user_id;
 
+        // Ensure multer's upload middleware is used correctly
         uploadProfile(req, res, async (err) => {
             if (err) {
                 return res.status(400).json({ 
@@ -628,14 +657,27 @@ exports.updateProfile = async (req, res) => {
                 
                 // If a file is uploaded, include the filename in userData
                 if (req.file) {
-                    userData.photo = req.file.filename;
+                    const file = req.file; // Get the uploaded file
+                    // Upload the file to S3 and get the filename
+                    const uploadParams = {
+                        Bucket: process.env.AWS_S3_BUCKETNAME,
+                        Key: `${Date.now()}_${file.originalname}`, // Unique file name
+                        Body: file.buffer, // File buffer
+                        ContentType: file.mimetype // Set the content type
+                    };
+
+                    // Upload to S3
+                    const data = await s3.upload(uploadParams).promise();
+                    userData.photo = data.Location; // Store the full S3 URL
+                } else {
+                    return res.status(400).json({ message: "Photo is required" }); // Handle case where no file is uploaded
                 }
 
                 // Remove password if it exists in the request
                 delete userData.password;
 
                 const data = await model.update(id, userData);
-                
+                console.log("S3 Upload Result:", data);
                 if (data && data.length > 0) {
                     res.status(200).json({
                         message: 'Profile updated successfully',
