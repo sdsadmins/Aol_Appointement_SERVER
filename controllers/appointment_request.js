@@ -405,21 +405,28 @@ exports.getAppointmentsByDate = async (req, res, next) => {
 
 
 exports.getSingleAppointmentDetails = async (req, res, next) => {
-	try {
-		const { id } = req.params; // Extract id from the route parameter
+    try {
+        const { id } = req.params; // Extract id from the route parameter
 
-		// Call the model method to get appointment details by ID
-		const data = await model.findOne(id);
+        // Call the model method to get appointment details by ID
+        const appointmentData = await model.findOne(id);
 
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data[0]); // Send the first result
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
-		}
-	} catch (e) {
-		console.log(`Error in getSingleAppointmentDetails`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
-	}
+        if (!_.isEmpty(appointmentData)) {
+            const userId = appointmentData[0].user_id; // Get user_id from appointment data
+            const userData = await userModel.findOne(userId); // Fetch user data using user_id
+
+            res.status(StatusCodes.OK).send({
+                message: "data retrived successfully",
+                appointment: appointmentData[0], // Send the first result of appointment
+                user: userData[0] // Send the user data
+            });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID." });
+        }
+    } catch (e) {
+        console.log(`Error in getSingleAppointmentDetails`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.changeCheckInStatus = async (req, res, next) => {
@@ -680,26 +687,21 @@ exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 			});
 		}
 
-		// Get today's date for comparison
-		const today = new Date();
-		today.setHours(0, 0, 0, 0); // Reset time to start of day
-
-		// Check if the input date is in the past
-		// if (inputDate < today) {
-		// 	return res.status(StatusCodes.BAD_REQUEST).send({ 
-		// 		message: "Date must be today or in the future." 
-		// 	});
-		// }
-
+		// Fetch data from the model
 		const data = await model.getUpcomingAppointmentsByDate(dateString);
 
+		// If data is found, format and return the response
 		if (data && data.length > 0) {
 			res.status(StatusCodes.OK).send({
 				message: "Upcoming appointment dates retrieved successfully",
 				totalCount: data.length,
-				dates: data.map(item => item.appointment_date)
+				data: data.map(item => ({
+					appointment_date: item.appointment_date,
+					app_count: item.app_count
+				}))
 			});
 		} else {
+			// No data found
 			res.status(StatusCodes.NOT_FOUND).send({
 				message: "No upcoming appointment dates found.",
 				totalCount: 0,
@@ -707,12 +709,14 @@ exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 			});
 		}
 	} catch (e) {
+		// Handle errors
 		console.error(`Error in getUpcomingAppointmentsByDate`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
 			message: e.message
 		});
 	}
 };
+
 
 exports.getRightNavCount = async (req, res, next) => {
 	try {
