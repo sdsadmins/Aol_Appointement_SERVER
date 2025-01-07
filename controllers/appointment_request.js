@@ -73,6 +73,18 @@ const uploadAdmin = multer({
 	}
 }).single("photo"); // Ensure this matches the field name in your form data
 
+// Add these imports at the top of your file
+const AWS = require('aws-sdk');
+
+// Configure AWS S3
+AWS.config.update({
+    accessKeyId: process.env.AWS_S3_ACCESSKEYID,
+    secretAccessKey: process.env.AWS_S3_SECRETACCESSKEYID,
+    region: process.env.REGION // Ensure you have the correct region
+});
+
+const s3 = new AWS.S3(); // Create S3 instance
+
 exports.getAll = async (req, res, next) => {
 	try {
 		const pageNo = await getPageNo(req);
@@ -1253,6 +1265,11 @@ exports.schedule_appointment = async (req, res, next) => {
 
         // Get Appointment Data By ID
         const app_data = await model.findOneById(appid);
+        
+        // Check if app_data is valid
+        if (!app_data || app_data.length === 0) {
+            return res.status(404).send({ message: "Appointment not found." });
+        }
 
         // Get Logged in User data
         const sec_data = await adminUserModel.findOne(admin_user_id);
@@ -1260,10 +1277,11 @@ exports.schedule_appointment = async (req, res, next) => {
         const secretary_user_name = sec_data[0].full_name;
         const extra_sign = sec_data[0].extra_sign;
 
-        const ap_location = app_data[0].ap_location;
-
-        // Conditional QR Code Generation
-        let qrCodeData = ap_location === 1 ? venue : app_data[0].id.toString();
+        const ap_location = app_data[0].ap_location; // Accessing ap_location safely now
+        console.log("ap_location", ap_location);
+        
+        // Generate QR Code
+        const qrCodeData = ap_location === 1 ? venue : app_data[0].id.toString();
         const qrCodeBase64 = await generateQRCode(qrCodeData);
 
         if (!qrCodeBase64) {
@@ -1271,7 +1289,17 @@ exports.schedule_appointment = async (req, res, next) => {
             return res.status(500).send({ message: 'QR Code generation failed' });
         }
 
-        console.log('Generated QR Code Base64:', qrCodeBase64);
+        // Upload QR Code to S3
+        const uploadParams = {
+            Bucket: process.env.AWS_S3_BUCKETNAME,
+            Key: `qr_code_${appid}.png`, // Unique file name
+            Body: Buffer.from(qrCodeBase64.split(",")[1], 'base64'), // Convert base64 to buffer
+            ContentType: 'image/png' // Set the content type
+        };
+
+        // Upload to S3
+        const uploadResult = await s3.upload(uploadParams).promise();
+        console.log('QR Code uploaded successfully:', uploadResult.Location); // Log the S3 URL
 
         // Process appointment status
         let ap_status = app_data[0].ap_status;
@@ -1316,24 +1344,6 @@ exports.schedule_appointment = async (req, res, next) => {
         const result = await model.update(app_data[0].id, data);
 
         if (result) {
-            // Save QR Code image to file
-            const uploadsDir = path.join(__dirname, '../uploads');
-            const qrCodeImagePath = path.join(uploadsDir, `qr_code_${appid}.png`);
-            const base64Image = qrCodeBase64.replace(/^data:image\/png;base64,/, '');
-
-            // Ensure the uploads directory exists
-            if (!fs.existsSync(uploadsDir)) {
-                fs.mkdirSync(uploadsDir, { recursive: true });
-            }
-
-            try {
-                fs.writeFileSync(qrCodeImagePath, base64Image, 'base64');
-                console.log('QR Code image saved successfully at:', qrCodeImagePath);
-            } catch (err) {
-                console.error('Error saving QR Code image:', err);
-                return res.status(500).send({ message: 'Failed to save QR Code image.' });
-            }
-
             // Fetch the email template
             const emailTemplateModel = require('../models/email_template');
             const emailTemplate = await emailTemplateModel.findOne(for_the_loc === 'IND' ? 8 : 35);
@@ -1343,7 +1353,7 @@ exports.schedule_appointment = async (req, res, next) => {
                 return res.status(500).send({ message: 'Email template not found' });
             }
 
-            // Embed QR code in email body using the cid
+            // Prepare email content with QR Code URL
             const emailBody = emailTemplate[0].template_data
                 .replace('{$full_name}', full_name)
                 .replace('{$AID}', appid)
@@ -1351,46 +1361,41 @@ exports.schedule_appointment = async (req, res, next) => {
                 .replace('{$time}', ap_time)
                 .replace('{$no_people}', no_people)
                 .replace('{$app_location}', venue)
-                .replace('{$qr_code}', `<img src="cid:qr_code_image" alt="QR Code" />`); // Embed QR code
+                .replace('{$link}', `<a href="${uploadResult.Location}">View QR Code</a>`)
+                .replace('{$qr_code_image}', `<img src="cid:qr_code_image" alt="QR Code" style="width:200px; height:200px;"/>`); // Embed QR Code
 
-            try {
-                const emailResult = await emailService.sendMailer(
-                    referenceEmail,
-                    'Appointment Scheduled',
-                    emailBody,
-                    {
-                        attachments: [
-                            {
-                                filename: `qr_code_${appid}.png`,
-                                content: qrCodeBase64.split(",")[1], // Extract base64 content
-                                encoding: 'base64',
-                                cid: 'qr_code_image' // Content ID for embedding in email
-                            }
-                        ]
-                    }
-                );
+            // Send email with the selected message
+            const emailResult = await emailService.sendMailer(
+                referenceEmail,
+                'Appointment Scheduled',
+                emailBody,
+                {
+                    attachments: [
+                        {
+                            filename: `qr_code_${appid}.png`,
+                            content: qrCodeBase64.split(",")[1], // Extract base64 content
+                            encoding: 'base64',
+                            cid: 'qr_code_image' // Content ID for embedding in email
+                        }
+                    ]
+                }
+            );
 
-                console.log('Email sent successfully:', emailResult);
+            console.log('Email sent successfully:', emailResult); // Log the email result
 
-                // Respond with success
-                res.status(200).send({ 
-                    message: 'Appointment scheduled successfully.',
-                    emailResult,
-                    qrCode: {
-                        data: qrCodeData,
-                        image: qrCodeBase64,
-                        appointmentId: appid,
-                        venue: venue,
-                        generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
-                    }
-                });
-            } catch (emailError) {
-                console.error('Error sending email:', emailError);
-                return res.status(500).send({ 
-                    message: 'Failed to send email with QR code.',
-                    error: emailError.message 
-                });
-            }
+            // Respond with success
+            res.status(200).send({ 
+                message: 'Appointment scheduled successfully.',
+                qrCodeUrl: uploadResult.Location, // Include the S3 URL in the response
+                emailResult, // Include emailResult in the response
+                qrCode: {
+                    data: qrCodeData,
+                    image: qrCodeBase64,
+                    appointmentId: appid,
+                    venue: venue,
+                    generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
+                }
+            });
         } else {
             res.status(500).send({ message: 'Failed to schedule appointment!' });
         }
