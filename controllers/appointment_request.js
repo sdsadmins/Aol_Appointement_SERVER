@@ -1998,3 +1998,30 @@ exports.getndateAppointments = async (req, res, next) => {
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
+
+exports.searchByDate = async (req, res, next) => {
+    try {
+        const { from_date, to_date } = req.body; // Extract from_date and to_date from the request body
+
+        // Validate date format
+        const startDate = new Date(from_date);
+        const endDate = new Date(to_date);
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return res.status(StatusCodes.BAD_REQUEST).send({
+                message: "Invalid date format. Please use YYYY-MM-DD format."
+            });
+        }
+
+        // Call the model method to fetch appointments within the date range
+        const data = await model.getAppointmentsByDateRange(startDate, endDate);
+
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send(data);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found for the specified date range." });
+        }
+    } catch (e) {
+        console.log(`Error in searchByDate`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
