@@ -239,18 +239,28 @@ exports.getUpcomingAppointmentsByDate = async (dateString) => {
         throw new Error('Invalid date format');
     }
 
-    // Use parameterized query to prevent SQL injection
+    // Query to get the count of appointments grouped by date
     const query = `
-        SELECT DISTINCT DATE(ap_date) as appointment_date 
-        FROM appointment_request 
+        SELECT DATE(ap_date) as appointment_date, COUNT(id) as app_count
+        FROM appointment_request
         WHERE 
             DATE(ap_date) >= ? 
             AND DATE(ap_date) != '0000-00-00'
+            AND deleted_app = '0'
+            AND ap_status IN ('Scheduled', 'TB R/S', 'Done')
+        GROUP BY DATE(ap_date)
         ORDER BY appointment_date ASC
     `;
 
-    return getRows(query, [dateString]);
+    const rows = await getRows(query, [dateString]);
+
+    // Return the result directly
+    return rows.map(row => ({
+        appointment_date: row.appointment_date,
+        app_count: row.app_count
+    }));
 };
+
 
 exports.getAppointmentCountByDate = async (userId, apDate) => {
     const query = `SELECT COUNT(*) as total FROM appointment_request WHERE user_id = ? AND DATE(ap_date) = ?`;
