@@ -722,3 +722,8 @@ exports.getAppointmentsByDateRange = async (fromDate, toDate) => {
 
     return getRows(query, [fromDate, toDate]);
 };
+
+exports.getAllAppointments = async () => {
+    const query = `SELECT * FROM appointment_request WHERE deleted_app != 0`; // Query to get all non-deleted appointments
+    return getRows(query); // Assuming getRows is your DB function
+};

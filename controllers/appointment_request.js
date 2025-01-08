@@ -2112,3 +2112,17 @@ exports.searchByDate = async (req, res, next) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
+
+exports.getAllAppointments = async (req, res, next) => {
+    try {
+        const appointments = await model.getAllAppointments(); // Call the model method to get all appointments
+        if (!_.isEmpty(appointments)) {
+            res.status(StatusCodes.OK).send({ message: `${appointments.length} records found`, appointments });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found." });
+        }
+    } catch (e) {
+        console.log(`Error in getAllAppointments`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
