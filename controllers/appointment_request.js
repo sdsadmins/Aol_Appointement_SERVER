@@ -732,24 +732,24 @@ exports.getUpcomingAppointmentsByDate = async (req, res, next) => {
 
 exports.getUpcomingAppointmentsByMonthYear = async (req, res, next) => {
     try {
-        const { month, year, uid } = req.query;
+        const { month, year, userId } = req.query;
 
-        // Validate month, year, and uid
+        // Validate month, year, and userId
         if (!month || !year || isNaN(month) || isNaN(year)) {
             return res.status(StatusCodes.BAD_REQUEST).send({
                 message: "Invalid month or year. Please provide valid numeric values."
             });
         }
 
-        if (!uid || isNaN(uid)) {
+        if (!userId || isNaN(userId)) {
             return res.status(StatusCodes.BAD_REQUEST).send({
-                message: "Invalid user ID (uid). Please provide a valid numeric value."
+                message: "Invalid user ID (userId). Please provide a valid numeric value."
             });
         }
 
         const inputMonth = parseInt(month, 10);
         const inputYear = parseInt(year, 10);
-        const inputUid = parseInt(uid, 10);
+        const inputuserId = parseInt(userId, 10);
 
         // Ensure the month is between 1 and 12
         if (inputMonth < 1 || inputMonth > 12) {
@@ -759,7 +759,7 @@ exports.getUpcomingAppointmentsByMonthYear = async (req, res, next) => {
         }
 
         // Fetch data from the model
-        const data = await model.getUpcomingAppointmentsByMonthYear(inputMonth, inputYear, inputUid);
+        const data = await model.getUpcomingAppointmentsByMonthYear(inputMonth, inputYear, inputuserId);
 
         // If data is found, format and return the response
         if (data && data.length > 0) {

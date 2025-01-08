@@ -274,12 +274,12 @@ exports.getUpcomingAppointmentsByDate = async (dateString) => {
     }));
 };
 
-exports.getUpcomingAppointmentsByMonthYear = async (month, year, uid) => {
+exports.getUpcomingAppointmentsByMonthYear = async (month, year, userId) => {
     // Construct the first and last dates of the month
     const firstDateOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
     const lastDateOfMonth = new Date(year, month, 0).toISOString().split("T")[0]; // Last day of the month
 
-    // Query to get the count of appointments grouped by date, and filtered by assign_to (uid)
+    // Query to get the count of appointments grouped by date, and filtered by assign_to (userId)
     const query = `
         SELECT DATE(ap_date) as appointment_date, COUNT(id) as app_count
         FROM appointment_request
@@ -293,7 +293,7 @@ exports.getUpcomingAppointmentsByMonthYear = async (month, year, uid) => {
         ORDER BY appointment_date ASC
     `;
 
-    const rows = await getRows(query, [firstDateOfMonth, lastDateOfMonth, uid]);
+    const rows = await getRows(query, [firstDateOfMonth, lastDateOfMonth, userId]);
 
     // Return the result directly
     return rows.map(row => ({
