@@ -724,6 +724,6 @@ exports.getAppointmentsByDateRange = async (fromDate, toDate) => {
 };
 
 exports.getAllAppointments = async () => {
-    const query = `SELECT * FROM appointment_request WHERE deleted_app != 0`; // Query to get all non-deleted appointments
+    const query = `SELECT * FROM appointment_request WHERE deleted_app != 0 ORDER BY ap_date DESC`; // Query to get all non-deleted appointments, latest first
     return getRows(query); // Assuming getRows is your DB function
 };
