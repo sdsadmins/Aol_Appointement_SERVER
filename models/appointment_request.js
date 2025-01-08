@@ -279,8 +279,8 @@ exports.getUpcomingAppointmentsByMonthYear = async (month, year, userId) => {
     const firstDateOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
     const lastDateOfMonth = new Date(year, month, 0).toISOString().split("T")[0]; // Last day of the month
 
-    // Query to get the count of appointments grouped by date, and filtered by assign_to (userId)
-    const query = `
+    // Base query
+    let query = `
         SELECT DATE(ap_date) as appointment_date, COUNT(id) as app_count
         FROM appointment_request
         WHERE 
@@ -288,12 +288,22 @@ exports.getUpcomingAppointmentsByMonthYear = async (month, year, userId) => {
             AND DATE(ap_date) != '0000-00-00'
             AND deleted_app = '0'
             AND ap_status IN ('Scheduled', 'TB R/S', 'Done')
-            AND assign_to = ?  -- Filter by assign_to field
+    `;
+
+    // Add userId filter dynamically if provided
+    const params = [firstDateOfMonth, lastDateOfMonth];
+    if (userId) {
+        query += ` AND assign_to = ?`;
+        params.push(userId);
+    }
+
+    // Add grouping and ordering
+    query += `
         GROUP BY DATE(ap_date)
         ORDER BY appointment_date ASC
     `;
 
-    const rows = await getRows(query, [firstDateOfMonth, lastDateOfMonth, userId]);
+    const rows = await getRows(query, params);
 
     // Return the result directly
     return rows.map(row => ({
