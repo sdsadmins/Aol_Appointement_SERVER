@@ -1239,6 +1239,174 @@ exports.markMultipleAsDeleted = async (req, res, next) => {
 	}
 };
 
+// exports.schedule_appointment = async (req, res, next) => {
+//     try {
+//         const { 
+//             appid, 
+//             admin_user_id, 
+//             ap_date, 
+//             ap_time, 
+//             meet_type, 
+//             venue, 
+//             to_be_opt, 
+//             stopsendemailmessage, 
+//             send_vds, 
+//             stay_avail,
+//             referenceEmail,
+//             full_name,
+//             no_people,
+//             for_the_loc
+//         } = req.body;
+
+//         // Get Appointment Data By ID
+//         const app_data = await model.findOneById(appid);
+        
+//         // Check if app_data is valid
+//         if (!app_data || app_data.length === 0) {
+//             return res.status(404).send({ message: "Appointment not found." });
+//         }
+
+//         // Get Logged in User data
+//         const sec_data = await adminUserModel.findOne(admin_user_id);
+//         const secretary_user_location = sec_data[0].user_location;
+//         const secretary_user_name = sec_data[0].full_name;
+//         const extra_sign = sec_data[0].extra_sign;
+
+//         const ap_location = app_data[0].ap_location; // Accessing ap_location safely now
+//         console.log("ap_location", ap_location);
+        
+//         // Generate QR Code
+//         const qrCodeData = ap_location === 1 ? venue : app_data[0].id.toString();
+//         const qrCodeBase64 = await generateQRCode(qrCodeData);
+
+//         if (!qrCodeBase64) {
+//             console.error('Failed to generate QR code.');
+//             return res.status(500).send({ message: 'QR Code generation failed' });
+//         }
+
+//         // Upload QR Code to S3
+//         const uploadParams = {
+//             Bucket: process.env.AWS_S3_BUCKETNAME,
+//             Key: `qr_code_${appid}.png`, // Unique file name
+//             Body: Buffer.from(qrCodeBase64.split(",")[1], 'base64'), // Convert base64 to buffer
+//             ContentType: 'image/png' // Set the content type
+//         };
+
+//         // Upload to S3
+//         const uploadResult = await s3.upload(uploadParams).promise();
+//         console.log('QR Code uploaded successfully:', uploadResult.Location); // Log the S3 URL
+
+//         // Process appointment status
+//         let ap_status = app_data[0].ap_status;
+//         let rescheduled_app = '';
+//         let approve_status = '';
+
+//         if (['Scheduled', 'TB R/S', 'SB', 'GK', 'PB'].includes(ap_status)) {
+//             rescheduled_app = 'Rescheduled';
+//         }
+
+//         if (ap_date && ap_time) {
+//             approve_status = 'Scheduled';
+//             if (['SB', 'GK', 'PB'].includes(ap_status)) {
+//                 approve_status = ap_status;
+//             }
+//         }
+
+//         if (to_be_opt) {
+//             approve_status = 'TB R/S';
+//         }
+
+//         const data = {
+//             ap_status: approve_status || null,
+//             ap_date: ap_date,
+//             app_visit: venue,
+//             mtype: meet_type,
+//             deleted_app: '0',
+//             slotted_by: admin_user_id,
+//             stay_avail: stay_avail ? 'Yes' : ''
+//         };
+
+//         if (ap_time) {
+//             const dateTime = `${ap_date} ${ap_time}`;
+//             data.ap_time = new Date(dateTime).getTime() / 1000;
+//         }
+
+//         if (rescheduled_app === 'Rescheduled') {
+//             data.admit_status = '';
+//             data.admitted_by = '0';
+//         }
+
+//         const result = await model.update(app_data[0].id, data);
+
+//         if (result) {
+//             // Fetch the email template
+//             const emailTemplateModel = require('../models/email_template');
+//             const emailTemplate = await emailTemplateModel.findOne(for_the_loc === 'IND' ? 8 : 35);
+
+//             if (!emailTemplate || emailTemplate.length === 0) {
+//                 console.error('Email template not found');
+//                 return res.status(500).send({ message: 'Email template not found' });
+//             }
+
+//             // Prepare email content with QR Code URL
+//             const emailBody = emailTemplate[0].template_data
+//                 .replace('{$full_name}', full_name)
+//                 .replace('{$AID}', appid)
+//                 .replace('{$date}', ap_date)
+//                 .replace('{$time}', ap_time)
+//                 .replace('{$no_people}', no_people)
+//                 .replace('{$app_location}', venue)
+//                 .replace('{$link}', `<a href="${uploadResult.Location}">View QR Code</a>`)
+//                 .replace('{$qr_code_image}', `<img src="cid:qr_code_image" alt="QR Code" style="width:200px; height:200px;"/>`); // Embed QR Code
+
+//             // Send email with the selected message
+//             const emailResult = await emailService.sendMailer(
+//                 referenceEmail,
+//                 'Appointment Scheduled',
+//                 emailBody,
+//                 {
+//                     attachments: [
+//                         {
+//                             filename: `qr_code_${appid}.png`,
+//                             content: qrCodeBase64.split(",")[1], // Extract base64 content
+//                             encoding: 'base64',
+//                             cid: 'qr_code_image' // Content ID for embedding in email
+//                         }
+//                     ]
+//                 }
+//             );
+
+//             console.log('Email sent successfully:', emailResult); // Log the email result
+
+//             // Respond with success
+//             res.status(200).send({ 
+//                 message: 'Appointment scheduled successfully.',
+//                 qrCodeUrl: uploadResult.Location, // Include the S3 URL in the response
+//                 emailResult, // Include emailResult in the response
+//                 qrCode: {
+//                     data: qrCodeData,
+//                     image: qrCodeBase64,
+//                     appointmentId: appid,
+//                     venue: venue,
+//                     generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
+//                 }
+//             });
+//         } else {
+//             res.status(500).send({ message: 'Failed to schedule appointment!' });
+//         }
+//     } catch (error) {
+//         console.error('Error in schedule_appointment:', error);
+//         res.status(500).send({ 
+//             message: 'An error occurred while scheduling the appointment.',
+//             error: error.message 
+//         });
+//     }
+// };
+
+
+
+// Helper function to generate QR Code in base64 format
+
 exports.schedule_appointment = async (req, res, next) => {
     try {
         const { 
@@ -1255,7 +1423,8 @@ exports.schedule_appointment = async (req, res, next) => {
             referenceEmail,
             full_name,
             no_people,
-            for_the_loc
+            for_the_loc,
+            ap_location // Now taking ap_location from req.body
         } = req.body;
 
         // Get Appointment Data By ID
@@ -1266,14 +1435,10 @@ exports.schedule_appointment = async (req, res, next) => {
             return res.status(404).send({ message: "Appointment not found." });
         }
 
-        // Get Logged in User data
-        const sec_data = await adminUserModel.findOne(admin_user_id);
-        const secretary_user_location = sec_data[0].user_location;
-        const secretary_user_name = sec_data[0].full_name;
-        const extra_sign = sec_data[0].extra_sign;
+        // Removed the line that fetches ap_location from app_data
+        // const ap_location = app_data[0].ap_location; // This line is removed
 
-        const ap_location = app_data[0].ap_location; // Accessing ap_location safely now
-        console.log("ap_location", ap_location);
+        console.log("ap_location", ap_location); // Now using ap_location from req.body
         
         // Generate QR Code
         const qrCodeData = ap_location === 1 ? venue : app_data[0].id.toString();
@@ -1323,7 +1488,8 @@ exports.schedule_appointment = async (req, res, next) => {
             mtype: meet_type,
             deleted_app: '0',
             slotted_by: admin_user_id,
-            stay_avail: stay_avail ? 'Yes' : ''
+            stay_avail: stay_avail ? 'Yes' : '',
+            ap_location: ap_location // Use ap_location from req.body
         };
 
         if (ap_time) {
@@ -1403,7 +1569,6 @@ exports.schedule_appointment = async (req, res, next) => {
     }
 };
 
-// Helper function to generate QR Code in base64 format
 async function generateQRCode(data) {
     const QRCode = require('qrcode');
     try {
