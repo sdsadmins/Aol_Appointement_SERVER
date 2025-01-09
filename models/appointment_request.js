@@ -421,9 +421,22 @@ exports.getDoneAppointments = async (offset, pageSize) => {
     const countQuery = `SELECT COUNT(*) as total FROM appointment_request WHERE ap_status = 'Done' AND deleted_app = '0'`;
     const countResult = await getRows(countQuery);
     const data = await getRows(query, [offset, pageSize]);
+    
+    // Fetch user data for each appointment
+    const userPromises = data.map(async (appointment) => {
+        const userData = await userModel.findOne(appointment.user_id); // Fetch user data
+        return {
+            ...appointment,
+            user: userData[0] || null // Add user data to the appointment
+        };
+    });
+
+    // Wait for all user data to be fetched
+    const appointmentsWithUserData = await Promise.all(userPromises);
+
     return {
         totalCount: countResult[0] ? countResult[0].total : 0,
-        data
+        data: appointmentsWithUserData // Return appointments with user data
     };
 };
 
