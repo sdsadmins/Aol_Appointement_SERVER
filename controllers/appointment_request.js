@@ -398,10 +398,14 @@ exports.getUserHistory = async (req, res, next) => {
 
 exports.getAppointmentsByDate = async (req, res, next) => {
     try {
-        const assignTo = req.params.assign_to;  // Using 'assign_to' from the route
+        const assignTo = req.params.assign_to;
         const dateString = req.params.datestring;
 
-        // Assuming getAppointmentsByDate is a method in your model to fetch data based on 'assign_to' and 'datestring'
+        // Validate assignTo and dateString
+        if (!assignTo || !dateString) {
+            return res.status(400).json({ message: "assign_to and datestring are required." });
+        }
+
         const data = await model.getAppointmentsByDate(dateString, assignTo);
 
         if (data && data.length > 0) {
@@ -2283,6 +2287,30 @@ exports.getAllAppointments = async (req, res, next) => {
         }
     } catch (e) {
         console.log(`Error in getAllAppointments`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
+
+
+// controllers/appointment_request.js
+exports.getUpcomingAppointmentsAndHistory = async (req, res, next) => {
+    try {
+        const { user_id, assign_to } = req.params;
+        const today = new Date().toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
+
+        // Fetch upcoming appointments
+        const upcomingAppointments = await model.getUpcomingAppointmentsByDate(today, assign_to);
+        
+        // Fetch appointment history
+        const appointmentHistory = await model.getUserAppointmentsHistory(user_id);
+
+        res.status(StatusCodes.OK).send({
+            message: "Upcoming appointments and appointment history retrieved successfully",
+            upcomingAppointments,
+            appointmentHistory
+        });
+    } catch (e) {
+        console.log(`Error in getUpcomingAppointmentsAndHistory`, e);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };

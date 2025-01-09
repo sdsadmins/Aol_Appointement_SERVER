@@ -142,22 +142,21 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-exports.getAppointmentsByDate = async (dateString, assignTo) => {
-    const query = `SELECT * FROM appointment_request WHERE DATE(ap_date) = ? AND assign_to = ?`;
-    const appointments = await getRows(query, [dateString, assignTo]);  // Parameters should match the order expected by the query
-    
-    // Fetch user data for each appointment
-    const userPromises = appointments.map(async (appointment) => {
-        const userData = await userModel.findOne(appointment.user_id); // Fetch user data
-        return {
-            ...appointment,
-            user: userData[0] || null // Add user data to the appointment
-        };
-    });
-
-    // Wait for all user data to be fetched
-    return await Promise.all(userPromises);
+const getAppointmentsByDate = async (datestring, assignTo) => {
+    try {
+        const query = `
+            SELECT * 
+            FROM appointments 
+            WHERE assign_to = ? AND DATE(appointment_date) = ?
+        `;
+        const values = [assignTo, datestring];
+        const [results] = await db.execute(query, values); // Assuming you're using a database connection like MySQL
+        return results;
+    } catch (error) {
+        throw error;
+    }
 };
+
 
 exports.findOneByApId = async (apId) => {
     const query = `SELECT * FROM appointment_request WHERE ap_id = ?`; // Query to find by ap_id
@@ -749,4 +748,25 @@ exports.getAppointmentsByDateRange = async (fromDate, toDate) => {
 exports.getAllAppointments = async () => {
     const query = `SELECT * FROM appointment_request WHERE deleted_app != 0 ORDER BY ap_date DESC`; // Query to get all non-deleted appointments, latest first
     return getRows(query); // Assuming getRows is your DB function
+};
+
+
+
+
+exports.getUpcomingAppointmentsByDate = async (date, assignTo) => {
+    const query = `
+        SELECT * FROM appointment_request 
+        WHERE DATE(ap_date) >= ? AND assign_to = ? AND deleted_app = '0'
+        ORDER BY ap_date ASC
+    `;
+    return getRows(query, [date, assignTo]);
+};
+
+exports.getUserAppointmentsHistory = async (userId) => {
+    const query = `
+        SELECT * FROM appointment_request 
+        WHERE user_id = ? AND deleted_app = '0'
+        ORDER BY ap_date DESC
+    `;
+    return getRows(query, [userId]);
 };
