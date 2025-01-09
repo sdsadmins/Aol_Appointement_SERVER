@@ -406,7 +406,7 @@ exports.getAppointmentsByDate = async (req, res, next) => {
             return res.status(400).json({ message: "datestring is required." });
         }
 
-        const data = await model.getAppointmentsByDate(dateString, assignTo);
+        const data = await model.getAppointmentsByDateData(dateString, assignTo);
 
         if (data && data.length > 0) {
             res.status(200).json(data);
