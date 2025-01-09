@@ -398,12 +398,12 @@ exports.getUserHistory = async (req, res, next) => {
 
 exports.getAppointmentsByDate = async (req, res, next) => {
     try {
-        const assignTo = req.params.assign_to;
+        const assignTo = req.params.assign_to === 'all' ? null : req.params.assign_to; // Handle "all" as a keyword
         const dateString = req.params.datestring;
 
-        // Validate assignTo and dateString
-        if (!assignTo || !dateString) {
-            return res.status(400).json({ message: "assign_to and datestring are required." });
+        // Validate dateString (datestring is mandatory)
+        if (!dateString) {
+            return res.status(400).json({ message: "datestring is required." });
         }
 
         const data = await model.getAppointmentsByDate(dateString, assignTo);
@@ -418,6 +418,7 @@ exports.getAppointmentsByDate = async (req, res, next) => {
         res.status(500).json({ message: e.message });
     }
 };
+
 
 
 exports.getSingleAppointmentDetails = async (req, res, next) => {
