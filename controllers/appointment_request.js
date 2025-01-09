@@ -25,20 +25,20 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Add multer storage configuration at the top of the file
-const storage = multer.diskStorage({
-	destination: function (req, file, cb) {
-		const uploadDir = path.join(__dirname, '../uploads/appointments');
-		if (!fs.existsSync(uploadDir)) {
-			fs.mkdirSync(uploadDir, { recursive: true });
-		}
-		cb(null, uploadDir);
-	},
-	filename: function (req, file, cb) {
-		const fileName = `${Date.now()}-${file.originalname}`;
-		cb(null, fileName);
-	}
-});
-
+// const storage = multer.diskStorage({
+// 	destination: function (req, file, cb) {
+// 		const uploadDir = path.join(__dirname, '../uploads/appointments');
+// 		if (!fs.existsSync(uploadDir)) {
+// 			fs.mkdirSync(uploadDir, { recursive: true });
+// 		}
+// 		cb(null, uploadDir);
+// 	},
+// 	filename: function (req, file, cb) {
+// 		const fileName = `${Date.now()}-${file.originalname}`;
+// 		cb(null, fileName);
+// 	}
+// });
+const storage = multer.memoryStorage(); 
 // Configure multer with file filtering
 const upload = multer({
 	storage: storage,
@@ -58,20 +58,19 @@ const upload = multer({
 
 // Add multer storage configuration at the top of the file
 const uploadAdmin = multer({
-	storage: storage,
-	fileFilter: (req, file, cb) => {
-		const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx']; // Add allowed file types
-		const extension = path.extname(file.originalname);
-		if (!allowedExtensions.includes(extension)) {
-			cb(new Error("Only JPG, JPEG, PNG, PDF, DOC, and DOCX files are allowed"));
-		} else {
-			cb(null, true);
-		}
-	},
-	limits: {
-		fileSize: 5 * 1024 * 1024 // 5 MB limit for file size
-	}
-}).single("photo"); // Ensure this matches the field name in your form data
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'];
+        const extension = path.extname(file.originalname).toLowerCase();
+        if (!allowedExtensions.includes(extension)) {
+            return cb(new Error("Only JPG, JPEG, PNG, PDF, DOC, and DOCX files are allowed"));
+        }
+        cb(null, true);
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024 // Limit file size to 5MB
+    }
+}).single("photo");
 
 // Add these imports at the top of your file
 const AWS = require('aws-sdk');
@@ -398,15 +397,15 @@ exports.getUserHistory = async (req, res, next) => {
 
 exports.getAppointmentsByDate = async (req, res, next) => {
     try {
-        const assignTo = req.params.assign_to === 'all' ? null : req.params.assign_to; // Handle "all" as a keyword
+        const assignTo = req.params.assign_to;
         const dateString = req.params.datestring;
 
-        // Validate dateString (datestring is mandatory)
-        if (!dateString) {
-            return res.status(400).json({ message: "datestring is required." });
+        // Validate assignTo and dateString
+        if (!assignTo || !dateString) {
+            return res.status(400).json({ message: "assign_to and datestring are required." });
         }
 
-        const data = await model.getAppointmentsByDateData(dateString, assignTo);
+        const data = await model.getAppointmentsByDate(dateString, assignTo);
 
         if (data && data.length > 0) {
             res.status(200).json(data);
@@ -418,7 +417,6 @@ exports.getAppointmentsByDate = async (req, res, next) => {
         res.status(500).json({ message: e.message });
     }
 };
-
 
 
 exports.getSingleAppointmentDetails = async (req, res, next) => {
@@ -1026,105 +1024,133 @@ exports.filterAppointmentsByAssignedStatus = async (req, res, next) => {
 };
 
 exports.addNewAppointmentAdmin = async (req, res, next) => {
-	uploadAdmin(req, res, async (err) => { // Use multer middleware
-		if (err) {
-			console.log("Error during file upload:", err);
-			return res.status(400).send({
-				message: err.message
-			});
-		}
+    uploadAdmin(req, res, async (err) => {
+        if (err) {
+            console.log("Error during file upload:", err);
+            return res.status(400).send({
+                message: err.message
+            });
+        }
 
-		try {
-			// Generate a random 6-digit appointment ID
-			const appointmentId = Math.floor(100000 + Math.random() * 900000);
+        try {
+            const { name, designation, email, mobileNo, venue, purpose, date, time, country_code, tbsReq, dontSendEmailSms } = req.body;
 
-			// Convert 12-hour time format to 24-hour
-			const timeComponents = req.body.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
-			let hours = parseInt(timeComponents[1]);
-			const minutes = timeComponents[2];
-			const period = timeComponents[3].toUpperCase();
+            if (!name || !designation || !email || !mobileNo || !venue || !purpose || !date || !time) {
+                return res.status(400).send({ message: "All required fields must be provided." });
+            }
 
-			if (period === 'PM' && hours < 12) hours += 12;
-			if (period === 'AM' && hours === 12) hours = 0;
+            // Time parsing logic
+            const timeRegex = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i;
+            const timeComponents = time.match(timeRegex);
 
-			const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
+            if (!timeComponents) {
+                return res.status(400).send({ message: `Invalid time format. Provided time: "${time}".` });
+            }
 
-			// Prepare appointment data
-			const appointmentData = {
-				ap_id: appointmentId,
-				full_name: req.body.name,
-				designation: req.body.designation,
-				// ref_name: req.body.referenceName,
-				no_people: req.body.noOfPeople,
-				mobile_no: req.body.mobileNo,
-				email_id: req.body.email,
-				// ref_mobile_no: req.body.refPhone,
-				// ref_email_id: req.body.refEmail,
-				venue: req.body.venue,
-				meet_purpose: req.body.purpose,
-				secretary_note: req.body.remarks || '',
-				ap_date: req.body.date,
-				ap_time: formattedTime,
-				// from_date: req.body.from_date,
-				// to_date: req.body.to_date,
-				picture: req.body.photo || '',
-				ap_status: 'pending',
-				email_status: req.body.dontSendEmailSms ? '0' : '1',
-				entry_date: new Date().toISOString().split('T')[0],
-				entry_date_time: new Date().toISOString(),
-				
+            let hours = parseInt(timeComponents[1], 10);
+            const minutes = timeComponents[2];
+            const period = timeComponents[3]?.toUpperCase();
 
-				deleted_app: '0',
-				more_info: '0',
-				star_rate: '0',
-				check_in_status: 'pending',
-				darshan_line: '0',
+            if (period) {
+                if (period === 'PM' && hours < 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+            }
 
-				backstage_status: '0',
-				position_order: '0',
-				darshan_line_email: '0',
-				for_ap: 'other',
-				country_code: req.body.country_code,
-				state: 0,
-				meet_subject: req.body.purpose,
-				mtype: req.body.tbsReq ? 'TBS' : 'Regular',
-				attachment: req.file ? req.file.filename : '', // Store the filename
-			};
+            const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
 
-			// Insert appointment into database
-			const data = await model.insert(appointmentData);
+            const appointmentData = {
+                ap_id: Math.floor(100000 + Math.random() * 900000),
+                full_name: name,
+                designation,
+                no_people: req.body.noOfPeople || 1,
+                mobile_no: mobileNo,
+                email_id: email,
+                venue,
+                meet_purpose: purpose,
+                secretary_note: req.body.remarks || '',
+                ap_date: date,
+                ap_time: formattedTime,
+                picture: req.body.photo || '',
+                ap_status: 'pending',
+                email_status: req.body.dontSendEmailSms ? '0' : '1',
+                entry_date: new Date().toISOString().split('T')[0],
+                entry_date_time: new Date().toISOString(),
+                deleted_app: '0',
+                more_info: '0',
+                star_rate: '0',
+                check_in_status: 'pending',
+                darshan_line: '0',
+                backstage_status: '0',
+                position_order: '0',
+                darshan_line_email: '0',
+                for_ap: 'other',
+                country_code,
+                state: 0,
+                meet_subject: purpose,
+                mtype: tbsReq ? 'TBS' : 'Regular',
+                attachment: ''
+            };
 
-			if (data) {
-				// Send email notification if enabled
-				if (!req.body.dontSendEmailSms) {
-					try {
-						await emailService.sendMailer(
-							appointmentData.email_id,
-							'Appointment Request Confirmation',
-							`Dear ${appointmentData.full_name},\n\nYour appointment request has been received.\nAppointment ID: ${appointmentData.ap_id}\nDate: ${appointmentData.ap_date}\nTime: ${req.body.time}\n\nBest regards,\nAppointment Team`
-						);
-					} catch (emailError) {
-						console.log('Error sending email:', emailError);
-						// Continue even if email fails
-					}
-				}
+            if (req.file) {
+                console.log("File upload detected:", req.file);
 
-				res.status(StatusCodes.CREATED).send({
-					message: 'Appointment created successfully',
-					data: data
-				});
-			} else {
-				res.status(StatusCodes.BAD_REQUEST).send({
-					message: "Failed to create appointment"
-				});
-			}
-		} catch (e) {
-			console.log(`Error in addNewAppointmentAdmin`, e);
-			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
-				message: e.message
-			});
-		}
-	});
+                if (!req.file.buffer) {
+                    console.error("File buffer is missing.");
+                    return res.status(400).send({
+                        message: "File upload failed. Buffer data is missing."
+                    });
+                }
+
+                const uploadParams = {
+                    Bucket: process.env.AWS_S3_BUCKETNAME,
+                    Key: `attachments/${req.file.originalname}`,
+                    Body: req.file.buffer,
+                    ContentType: req.file.mimetype
+                };
+
+                try {
+                    const uploadResult = await s3.upload(uploadParams).promise();
+                    console.log('File uploaded successfully:', uploadResult.Location);
+                    appointmentData.attachment = uploadResult.Location;
+                } catch (uploadError) {
+                    console.error('Error uploading file to S3:', uploadError);
+                    return res.status(500).send({
+                        message: 'File upload failed.',
+                        error: uploadError.message
+                    });
+                }
+            } else {
+                console.log('No file uploaded.');
+                return res.status(400).send({ message: "No file uploaded." });
+            }
+
+            const data = await model.insert(appointmentData);
+
+            if (data) {
+                if (!dontSendEmailSms) {
+                    try {
+                        await emailService.sendMailer(
+                            appointmentData.email_id,
+                            'Appointment Request Confirmation',
+                            `Dear ${appointmentData.full_name},\n\nYour appointment request has been received.\nAppointment ID: ${appointmentData.ap_id}\nDate: ${appointmentData.ap_date}\nTime: ${formattedTime}\n\nBest regards,\nAppointment Team`
+                        );
+                    } catch (emailError) {
+                        console.log('Error sending email:', emailError);
+                    }
+                }
+
+                res.status(201).send({
+                    message: 'Appointment created successfully',
+                    data
+                });
+            } else {
+                res.status(400).send({ message: "Failed to create appointment" });
+            }
+        } catch (error) {
+            console.error('Error in addNewAppointmentAdmin:', error);
+            res.status(500).send({ message: error.message });
+        }
+    });
 };
 
 exports.markAppointmentAsDeleted = async (req, res, next) => {
