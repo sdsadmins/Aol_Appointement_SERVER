@@ -142,20 +142,40 @@ exports.getUserHistory = async (userId, emailId) => {
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
-const getAppointmentsByDate = async (datestring, assignTo) => {
-    try {
-        const query = `
-            SELECT * 
-            FROM appointments 
-            WHERE assign_to = ? AND DATE(appointment_date) = ?
-        `;
-        const values = [assignTo, datestring];
-        const [results] = await db.execute(query, values); // Assuming you're using a database connection like MySQL
-        return results;
-    } catch (error) {
-        throw error;
+// exports.getAppointmentsByDate = async (datestring, assignTo) => {
+//     try {
+//         const query = `
+//             SELECT * 
+//             FROM appointments 
+//             WHERE assign_to = ? AND DATE(appointment_date) = ?
+//         `;
+//         const values = [assignTo, datestring];
+//         const [results] = await db.execute(query, values); // Assuming you're using a database connection like MySQL
+//         return results;
+//     } catch (error) {
+//         throw error;
+//     }
+// };
+
+
+exports.getAppointmentsByDate = async (datestring, assignTo) => {
+    let query = `
+        SELECT * 
+        FROM appointment_request 
+        WHERE DATE(ap_date) = ?
+    `;
+    const params = [datestring];
+
+    // Add condition for `assign_to` if it's provided
+    if (assignTo) {
+        query += ` AND assign_to = ?`;
+        params.push(assignTo);
     }
+
+    // Execute query with dynamic parameters
+    return getRows(query, params);
 };
+
 
 
 exports.findOneByApId = async (apId) => {

@@ -397,26 +397,83 @@ exports.getUserHistory = async (req, res, next) => {
 
 exports.getAppointmentsByDate = async (req, res, next) => {
     try {
-        const assignTo = req.params.assign_to;
+        const assignTo = req.params.assign_to === 'all' ? null : req.params.assign_to; // Handle "all" as a keyword
         const dateString = req.params.datestring;
 
-        // Validate assignTo and dateString
-        if (!assignTo || !dateString) {
-            return res.status(400).json({ message: "assign_to and datestring are required." });
+        // Validate dateString (datestring is mandatory)
+        if (!dateString) {
+            return res.status(400).json({ message: "datestring is required." });
         }
 
+        // Fetch appointments based on the date and assigned user
         const data = await model.getAppointmentsByDate(dateString, assignTo);
 
         if (data && data.length > 0) {
-            res.status(200).json(data);
+            // Initialize arrays for each status category
+            const morningData = [];
+            const eveningData = [];
+            const nightData = [];
+            const tbrsData = [];
+            const doneData = [];
+            const sbData = [];
+            const gkData = [];
+            const pbData = [];
+
+            // Iterate over the fetched appointments and categorize them
+            data.forEach(appointment => {
+                const apTime = new Date(appointment.ap_time * 1000); // Convert timestamp to Date object
+                const hour = apTime.getHours(); // Extract the hour in 24-hour format
+
+                // Classify based on appointment status
+                if (appointment.ap_status === "Scheduled") {
+                    // Time-based classification for Scheduled appointments
+                    if (hour < 16) {
+                        morningData.push(appointment);
+                    } else if (hour >= 16 && hour < 19) {
+                        eveningData.push(appointment);
+                    } else if (hour >= 19 && hour <= 23) {
+                        nightData.push(appointment);
+                    }
+                } else if (appointment.ap_status === "TB R/S") {
+                    tbrsData.push(appointment);
+                } else if (appointment.ap_status === "Done") {
+                    doneData.push(appointment);
+                } else if (appointment.ap_status === "SB") {
+                    sbData.push(appointment);
+                } else if (appointment.ap_status === "GK") {
+                    gkData.push(appointment);
+                } else if (appointment.ap_status === "PB") {
+                    pbData.push(appointment);
+                }
+            });
+
+            // Prepare the response with categorized data
+            const categorizedData = {
+                morning_data: morningData,
+                evening_data: eveningData,
+                night_data: nightData,
+                tbrs_data: tbrsData,
+                done_data: doneData,
+                sb_data: sbData,
+                gk_data: gkData,
+                pb_data: pbData
+            };
+
+            // Return the response
+            return res.status(200).json({
+                message: "Appointments fetched successfully.",
+                data: categorizedData,
+            });
         } else {
-            res.status(404).json({ message: "No appointments found for this date." });
+            return res.status(404).json({ message: "No appointments found for this date." });
         }
     } catch (e) {
         console.error(`Error in getAppointmentsByDate: ${e}`);
-        res.status(500).json({ message: e.message });
+        res.status(500).json({ message: "An error occurred while fetching appointments.", error: e.message });
     }
 };
+
+
 
 
 exports.getSingleAppointmentDetails = async (req, res, next) => {
@@ -2341,3 +2398,6 @@ exports.getUpcomingAppointmentsAndHistory = async (req, res, next) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
+
+
+
