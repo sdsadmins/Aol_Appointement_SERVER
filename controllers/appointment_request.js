@@ -241,63 +241,90 @@ exports.getLastSecretary = async (req, res, next) => {
 };
 
 exports.submitSelfAppointment = async (req, res, next) => {
-	upload(req, res, async (err) => {
-		if (err) {
-			console.log("Error during file upload:", err);
-			return res.status(StatusCodes.BAD_REQUEST).send({
-				message: err.message
-			});
-		}
+    upload(req, res, async (err) => {
+        if (err) {
+            console.log("Error during file upload:", err);
+            return res.status(StatusCodes.BAD_REQUEST).send({
+                message: err.message
+            });
+        }
 
-		try {
-			const userId = req.params.user_id;
-			const appointmentData = {
-				ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
-				user_id: userId,
-				full_name: req.body.user_full_name,
-				email_id: req.body.user_email,
-				mobile_no: req.body.user_phone,
-				ap_location: req.body.ap_location,
-				designation: req.body.designation,
-				meet_subject: req.body.meet_subject || '',
-				meet_purpose: req.body.meet_purpose,
-				no_people: req.body.no_people,
-				no_people_names: req.body.no_people_names,
-				no_people_numbers: req.body.no_people_numbers,
-				from_date: req.body.from_date,
-				to_date: req.body.to_date,
-				attachment: req.file ? req.file.filename : '', // Store the filename
-				// attachment_url: req.file ? `http://localhost:${process.env.PORT}/uploads/appointments/${req.file.filename}` : '', // Construct the URL
-				currently_doing: req.body.currently_doing,
-				designationcomp: req.body.designationcomp,
-				dop: req.body.dop,
-				toa: req.body.toa || 'offline',
-				curr_loc: req.body.curr_loc || '',
-				selCountry: req.body.selCountry || '',
-				selState: req.body.selState || '',
-				selCity: req.body.selCity || '',
-				for_ap: "me",
-				ap_status: "pending"
-			};
+        try {
+            const userId = req.params.user_id;
 
-			const data = await model.insert(appointmentData);
-			if (data) {
-				res.status(StatusCodes.CREATED).send({
-					message: 'Appointment created',
-					data: data
-				});
-			} else {
-				res.status(StatusCodes.BAD_REQUEST).send({
-					message: "Bad Request!"
-				});
-			}
-		} catch (e) {
-			console.log(`Error in submitSelfAppointment`, e);
-			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
-				message: e.message
-			});
-		}
-	});
+            // Prepare appointment data
+            const appointmentData = {
+                ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
+                user_id: userId,
+                full_name: req.body.user_full_name,
+                email_id: req.body.user_email,
+                mobile_no: req.body.user_phone,
+                ap_location: req.body.ap_location,
+                designation: req.body.designation,
+                meet_subject: req.body.meet_subject || '',
+                meet_purpose: req.body.meet_purpose,
+                no_people: req.body.no_people,
+                no_people_names: req.body.no_people_names,
+                no_people_numbers: req.body.no_people_numbers,
+                from_date: req.body.from_date,
+                to_date: req.body.to_date,
+                attachment: '', // Placeholder for S3 URL
+                currently_doing: req.body.currently_doing,
+                designationcomp: req.body.designationcomp,
+                dop: req.body.dop,
+                toa: req.body.toa || 'offline',
+                curr_loc: req.body.curr_loc || '',
+                selCountry: req.body.selCountry || '',
+                selState: req.body.selState || '',
+                selCity: req.body.selCity || '',
+                for_ap: "me",
+                ap_status: "pending"
+            };
+
+            // Check if a file is attached and upload it to S3
+            if (req.files && req.files.attachment && req.files.attachment.length > 0) {
+                const file = req.files.attachment[0];
+				console.log("filefilefile",file)
+                const uploadParams = {
+                    Bucket: process.env.AWS_S3_BUCKETNAME,
+                    Key: `attachments/${Date.now()}_${file.originalname}`, // Unique file name
+                    Body: file.buffer,
+                    ContentType: file.mimetype
+                };
+				console.log("uploadParamsuploadParams",uploadParams);
+				
+                try {
+                    const uploadResult = await s3.upload(uploadParams).promise();
+                    console.log('File uploaded successfully:', uploadResult.Location);
+                    appointmentData.attachment = uploadResult.Location; // Assign S3 URL to the attachment field
+                } catch (uploadError) {
+                    console.error('Error uploading file to S3:', uploadError);
+                    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+                        message: 'File upload to S3 failed',
+                        error: uploadError.message
+                    });
+                }
+            }
+
+            // Insert appointment data into the database
+            const data = await model.insert(appointmentData);
+            if (data) {
+                res.status(StatusCodes.CREATED).send({
+                    message: 'Appointment created successfully',
+                    data: data
+                });
+            } else {
+                res.status(StatusCodes.BAD_REQUEST).send({
+                    message: "Failed to create appointment"
+                });
+            }
+        } catch (e) {
+            console.log(`Error in submitSelfAppointment`, e);
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+                message: e.message
+            });
+        }
+    });
 };
 
 exports.submitGuestAppointment = async (req, res, next) => {
@@ -314,8 +341,8 @@ exports.submitGuestAppointment = async (req, res, next) => {
 			const userId = req.params.user_id;
 
 			// Ensure files are captured correctly
-			const attachments = req.files['attachment'] ? req.files['attachment'].map(file => file.filename) : [];
-			const pictures = req.files['picture'] ? req.files['picture'].map(file => file.filename) : [];
+			const attachments = req.files['attachment'] ? req.files['attachment'] : [];
+			const pictures = req.files['picture'] ? req.files['picture'] : [];
 
 			const appointmentData = {
 				ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
@@ -333,8 +360,8 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				no_people: req.body.no_people,
 				from_date: req.body.from_other_date,
 				to_date: req.body.to_other_date,
-				picture: pictures.length > 0 ? pictures[0] : '', // Ensure only one file for 'picture'
-				attachment: attachments.length > 0 ? attachments[0] : '', // Ensure only one file for 'attachment'
+				picture: '', // Placeholder for S3 URL
+				attachment: '', // Placeholder for S3 URL
 				toa: req.body.toa || 'offline',
 				curr_loc: req.body.curr_loc || '',
 				currently_doing: req.body.currently_doing,
@@ -353,6 +380,41 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				ap_status: "pending"
 			};
 
+			// Upload files to S3
+			const uploadPromises = [];
+
+			// Upload attachment if exists
+			if (attachments.length > 0) {
+				const attachmentFile = attachments[0];
+				const uploadParamsAttachment = {
+					Bucket: process.env.AWS_S3_BUCKETNAME,
+					Key: `attachments/${Date.now()}_${attachmentFile.originalname}`, // Unique file name
+					Body: attachmentFile.buffer,
+					ContentType: attachmentFile.mimetype
+				};
+				uploadPromises.push(s3.upload(uploadParamsAttachment).promise().then(uploadResult => {
+					appointmentData.attachment = uploadResult.Location; // Assign S3 URL to the attachment field
+				}));
+			}
+
+			// Upload picture if exists
+			if (pictures.length > 0) {
+				const pictureFile = pictures[0];
+				const uploadParamsPicture = {
+					Bucket: process.env.AWS_S3_BUCKETNAME,
+					Key: `pictures/${Date.now()}_${pictureFile.originalname}`, // Unique file name
+					Body: pictureFile.buffer,
+					ContentType: pictureFile.mimetype
+				};
+				uploadPromises.push(s3.upload(uploadParamsPicture).promise().then(uploadResult => {
+					appointmentData.picture = uploadResult.Location; // Assign S3 URL to the picture field
+				}));
+			}
+
+			// Wait for all uploads to complete
+			await Promise.all(uploadPromises);
+
+			// Insert appointment data into the database
 			const data = await model.insert(appointmentData);
 			if (data) {
 				res.status(StatusCodes.CREATED).send({
