@@ -1576,24 +1576,26 @@ exports.schedule_appointment = async (req, res, next) => {
             full_name,
             no_people,
             for_the_loc,
-            ap_location // Now taking ap_location from req.body
+            ap_location
         } = req.body;
 
         // Get Appointment Data By ID
         const app_data = await model.findOneById(appid);
         
-        // Check if app_data is valid
         if (!app_data || app_data.length === 0) {
             return res.status(404).send({ message: "Appointment not found." });
         }
 
-        // Removed the line that fetches ap_location from app_data
-        // const ap_location = app_data[0].ap_location; // This line is removed
+        // Generate QR Code - Fixed Logic
+        let qrCodeData;
+        if (parseInt(ap_location) === 1) {  // Ensure numeric comparison
+            qrCodeData = `Venue: ${venue}, Name: ${full_name}, Date: ${ap_date}, Time: ${ap_time}, No. of People: ${no_people}`;
+            console.log("Generating QR code for venue:", venue, full_name, ap_date, ap_time, no_people);
+        } else {
+            qrCodeData = appid.toString();  // Use appointment ID for other locations
+            console.log("Generating QR code for appointment ID:", appid);
+        }
 
-        console.log("ap_location", ap_location); // Now using ap_location from req.body
-        
-        // Generate QR Code
-        const qrCodeData = ap_location === 1 ? venue : app_data[0].id.toString();
         const qrCodeBase64 = await generateQRCode(qrCodeData);
 
         if (!qrCodeBase64) {
