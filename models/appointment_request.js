@@ -138,7 +138,7 @@ exports.getLastSecretary = async (userId, forAp) => {
 };
 
 exports.getUserHistory = async (userId, emailId) => {
-    const query = `SELECT * FROM appointment_request WHERE user_id = ? AND (email_id = ? OR ref_email_id = ?)`;
+    const query = `SELECT * FROM appointment_request WHERE user_id = ?`;
     return getRows(query, [userId, emailId, emailId]); // Pass emailId twice for both conditions
 };
 
@@ -526,54 +526,43 @@ exports.getTomorrowsAppointments = async (assignTo) => {
 
 // Divya --added on 23 Dec 2024
 exports.getInboxAppointments = async (location, limit, offset) => {
-    // console.log("Inbox model",location,limit,offset);
-
-    // const query = `SELECT * FROM appointment_request WHERE ap_status = ? AND darshan_line = '' AND backstage_status = '' AND deleted_app = ? ORDER BY id DESC LIMIT ? OFFSET ?`;
-    // const params = ['Pending', '0', limit, offset];
-	// return getRows(query, params);
-
     const main_location = "1";
-    const allowedUSLocations = ['2', '4', '9', '10', '11', '12', '13']; // Define US locations
+    const allowedUSLocations = ['2', '4', '9', '10', '11', '12', '13'];
+    const params = ['Pending', '0'];
 
     // Base query
     let query = `
-        SELECT * 
+        SELECT id, user_id, for_ap, full_name, picture, 
+               ap_location, ref_name, ref_country_code, 
+               ref_mobile_no, country_code, mobile_no, 
+               assign_to, assigned_by
         FROM appointment_request 
         WHERE ap_status = ? 
-        AND darshan_line = '' 
-        AND backstage_status = '' 
-        AND deleted_app = ? 
+          AND darshan_line = '' 
+          AND backstage_status = '' 
+          AND deleted_app = ?
     `;
 
-    const params = ['Pending', '0']; // Base parameters
-
-    // Apply location conditions
+    // Location filtering
     if (main_location === location) {
         query += `AND ap_location = ? `;
         params.push(location);
-
+    } else if (allowedUSLocations.includes(location)) {
+        query += `AND ap_location IN (${allowedUSLocations.map(() => '?').join(', ')}) `;
+        params.push(...allowedUSLocations);
     } else {
-        if (allowedUSLocations.includes(location)) {
-        if (role === 'gurudev') {
-            query += `AND ap_location = ? `;
-            params.push(location);
-        } else {
-            query += `AND ap_location IN (${allowedUSLocations.map(() => '?').join(', ')}) `;
-            params.push(...allowedUSLocations);
-        }
-        } else {
-            query += `AND ap_location = ? `;
-            params.push(location);
-        }
+        query += `AND ap_location = ? `;
+        params.push(location);
     }
 
-    // Add ordering and pagination
+    // Ordering and pagination
     query += `ORDER BY id DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
-    // Execute query
+    // Execute the query
     return getRows(query, params);
-}
+};
+
 
 // Divya --added on 24 Dec 2024
 // exports.getAssignedAppointments = async (userid, role, location, limit, offset) => {
@@ -707,6 +696,7 @@ exports.getndateAppointments = async (user_id, show_appts_of, location, datestri
         WHERE deleted_app = ? 
     `;
     params.push('0'); // deleted_app is always '0'
+
 
     // Location logic
     if (main_location !== location) {
