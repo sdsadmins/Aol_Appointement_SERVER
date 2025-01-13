@@ -66,7 +66,7 @@ const upload = (req, res, next) => {
 const uploadProfile = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        const allowedExtensions = [".jpg", ".jpeg"];
+        const allowedExtensions = [".jpg", ".jpeg", ".png"];
         const extension = path.extname(file.originalname);
         if (!allowedExtensions.includes(extension)) {
             cb(new Error("Only JPEG/JPG images are allowed"));

@@ -256,9 +256,9 @@ exports.submitSelfAppointment = async (req, res, next) => {
             const appointmentData = {
                 ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
                 user_id: userId,
-                full_name: req.body.user_full_name,
-                email_id: req.body.user_email,
-                mobile_no: req.body.user_phone,
+                // full_name: req.body.user_full_name,
+                // email_id: req.body.user_email,
+                // mobile_no: req.body.user_phone,
                 ap_location: req.body.ap_location,
                 designation: req.body.designation,
                 meet_subject: req.body.meet_subject || '',
@@ -274,11 +274,12 @@ exports.submitSelfAppointment = async (req, res, next) => {
                 dop: req.body.dop,
                 toa: req.body.toa || 'offline',
                 curr_loc: req.body.curr_loc || '',
-                selCountry: req.body.selCountry || '',
-                selState: req.body.selState || '',
-                selCity: req.body.selCity || '',
+                // selCountry: req.body.selCountry || '',
+                // selState: req.body.selState || '',
+                // selCity: req.body.selCity || '',
                 for_ap: "me",
-                ap_status: "pending"
+                ap_status: "Pending",
+                entry_date_time: new Date().toISOString(), // Added current date and time
             };
 
             // Check if a file is attached and upload it to S3
@@ -377,7 +378,8 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				ref_mobile_no: req.body.ref_mobile_no,
 				designationcomp: req.body.designationcomp,
 				for_ap: "other",
-				ap_status: "pending"
+				ap_status: "Pending",
+                entry_date_time: new Date().toISOString(),
 			};
 
 			// Upload files to S3
