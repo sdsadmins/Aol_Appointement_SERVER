@@ -68,5 +68,6 @@ router.get('/allAppointments', checkAuth, controller.getAllAppointments);
 // routes/appointment_request.js
 router.get('/upcomingAppointmentsAndHistory/:user_id/:assign_to', checkAuth, controller.getUpcomingAppointmentsAndHistory);
 
+router.get('/appointmentInfo/:id', checkAuth, controller.getAppointmentInfo);
 
 module.exports = router;

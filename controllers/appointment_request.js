@@ -440,15 +440,24 @@ exports.submitGuestAppointment = async (req, res, next) => {
 exports.getUserHistory = async (req, res, next) => {
 	try {
 		const userId = req.params.user_id;
+        const page = parseInt(req.query.page) || 1;
+		const perPage = parseInt(req.query.perPage) || 5;
 	//	const emailId = req.params.email_id;
 
 		const data = await model.getUserHistory(userId); // Call the model method
 		const totalCount = data.length;
-		if (!_.isEmpty(data)) {
+        
+        const startIndex = (page - 1) * perPage;
+		const paginatedData = data.slice(startIndex, startIndex + perPage);
+
+		if (!_.isEmpty(paginatedData)) {
 			res.status(StatusCodes.OK).send({
 				message: "User history retrieved successfully", // Success message
 				totalCount, // Include total count in the response
-				data
+				page, // Current page
+				perPage, // Items per page
+				totalPages: Math.ceil(totalCount / perPage), // Total pages
+				data: paginatedData // Paginated data
 			});
 		} else {
 			res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment history found for this user." });
@@ -2445,6 +2454,31 @@ exports.getUpcomingAppointmentsAndHistory = async (req, res, next) => {
     } catch (e) {
         console.log(`Error in getUpcomingAppointmentsAndHistory`, e);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
+
+exports.getAppointmentInfo = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const appointment = await model.getAppointmentInfoById(id);
+
+        if (appointment) {
+            res.status(StatusCodes.OK).send({
+                message: "Appointment information retrieved successfully",
+                code: StatusCodes.OK,
+                success: true,
+                data: appointment
+            });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({
+                message: "Appointment not found"
+            });
+        }
+    } catch (e) {
+        console.error('Error in getAppointmentInfo:', e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+            message: e.message
+        });
     }
 };
 

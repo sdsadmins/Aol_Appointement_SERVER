@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.get('/',  controller.getAll);
 router.post('/', checkAuth, bodyValidator(createDto), controller.create);
+router.get('/active', checkAuth, controller.getActiveLocations);
 router.get('/:id', checkAuth, controller.getOne);
 router.put('/:id', checkAuth, updateValidator(createDto), controller.update);
 router.patch('/:id', checkAuth, controller.update);

@@ -780,3 +780,29 @@ exports.getUserAppointmentsHistory = async (userId) => {
     `;
     return getRows(query, [userId]);
 };
+
+exports.getAppointmentInfoById = async (id) => {
+    const query = `
+        SELECT id, for_ap, assign_to, assign_to_fill, meet_purpose, 
+               ap_status, no_people, ap_date, ap_time, from_date, to_date,
+               ap_id
+        FROM appointment_request
+        WHERE id = ? AND deleted_app = '0'`;
+
+    const result = await getRows(query, [id]);
+    const appointment = result[0];
+
+    if (appointment && appointment.ap_status === 'Scheduled') {
+        // Ensure the AWS_S3_BASE_URL is defined in your environment
+        const s3BaseUrl = process.env.AWS_S3_BASE_URL;
+        if (!s3BaseUrl) {
+            throw new Error('AWS_S3_BASE_URL is not defined in the environment variables');
+        }
+
+        // Construct the S3 URL for the QR code
+        const qrCodeUrl = `${s3BaseUrl}/qr_code_${appointment.ap_id}.png`;
+        appointment.qr_code_url = qrCodeUrl;
+    }
+
+    return appointment;
+};

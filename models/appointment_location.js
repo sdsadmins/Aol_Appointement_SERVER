@@ -92,4 +92,7 @@ exports.getAppointmentsByDate = async (userId, apDate, apLocation) => {
     return getRows(query, [apDate, userId, apLocation]);
 };
 
-
+exports.getActiveLocations = async () => {
+    const query = `SELECT * FROM appointment_location WHERE status = "1" ORDER BY location_name`;
+    return getRows(query);
+};

@@ -1,8 +1,8 @@
 const _ = require('lodash');
-const {StatusCodes} = require('http-status-codes');
+const { StatusCodes } = require('http-status-codes');
 const model = require("../models/appointment_location");
 const adminUserModel = require("../models/admin_users");
-const {getPageNo, getPageSize} = require('../utils/helper');
+const { getPageNo, getPageSize } = require('../utils/helper');
 
 exports.getAll = async (req, res, next) => {
 	try {
@@ -20,11 +20,11 @@ exports.getAll = async (req, res, next) => {
 			};
 			res.status(StatusCodes.OK).send(result);
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
 		}
 	} catch (e) {
 		console.log(`Error in getAll`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -36,11 +36,11 @@ exports.getOne = async (req, res, next) => {
 		if (!_.isEmpty(data)) {
 			res.status(StatusCodes.OK).send(data[0]);
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
 		}
 	} catch (e) {
 		console.log(`Error in getById`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -48,13 +48,13 @@ exports.create = async (req, res, next) => {
 	try {
 		const data = await model.insert(req.body);
 		if (data) {
-			res.status(StatusCodes.CREATED).send({message:'Record created', data:data});
+			res.status(StatusCodes.CREATED).send({ message: 'Record created', data: data });
 		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad Request!"});
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
 		}
 	} catch (e) {
 		console.log(`Error in create`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -67,11 +67,11 @@ exports.update = async (req, res, next) => {
 		if (!_.isEmpty(data)) {
 			res.status(StatusCodes.OK).send(data[0]);
 		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad request."});
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
 		}
 	} catch (e) {
 		console.log(`Error in update`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -82,13 +82,13 @@ exports.remove = async (req, res, next) => {
 		//const id = req.params.id;
 		const data = await model.remove(id);
 		if (data) {
-			res.status(StatusCodes.OK).send({message : "Resource deleted"});
+			res.status(StatusCodes.OK).send({ message: "Resource deleted" });
 		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad request."});
+			res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
 		}
 	} catch (e) {
 		console.log(`Error in remove`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -109,11 +109,11 @@ exports.search = async (req, res, next) => {
 			};
 			res.status(StatusCodes.OK).send(result);
 		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
 		}
 	} catch (e) {
 		console.log(`Error in search`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
 
@@ -153,7 +153,7 @@ exports.getAppointmentLocation = async (req, res, next) => {
 		// console.log("location access",data[0].show_appts_of);
 
 		let locData = [];
-		if(adminUser[0].show_appts_of == 'All'){
+		if (adminUser[0].show_appts_of == 'All') {
 			locData = [{ id: "", location_name: adminUser[0].show_appts_of }];
 		} else {
 			const locArr = adminUser[0].show_appts_of.split(",");
@@ -172,6 +172,25 @@ exports.getAppointmentLocation = async (req, res, next) => {
 		}
 	} catch (e) {
 		console.log(`Error in getAppointmentsByLocation`, e);
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+	}
+};
+exports.getActiveLocations = async (req, res, next) => {
+	try {
+		const data = await model.getActiveLocations();
+		if (!_.isEmpty(data)) {
+			res.status(StatusCodes.OK).send({
+				message: "data retrived successfully",
+				code: 200,
+				success: true,
+				count: data.length,
+				data: data
+			});
+		} else {
+			res.status(StatusCodes.NOT_FOUND).send({ message: "No active locations found." });
+		}
+	} catch (e) {
+		console.log(`Error in getActiveLocations`, e);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
 	}
 };
