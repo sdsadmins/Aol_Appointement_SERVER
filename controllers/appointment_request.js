@@ -1908,34 +1908,56 @@ exports.getInboxData = async (req, res, next) => {
             return res.status(400).send({ message: 'User ID is required' });
         }
 
-        // Fetch admin user details (logged-in user)
+        // Fetch admin user details (logged in user)
         const adminUserData = await adminUserModel.findOne(user_id);
         if (!adminUserData || adminUserData.length === 0) {
             return res.status(404).send({ message: 'Admin user not found' });
         }
         const user_location = adminUserData[0].user_location;
 
-        // Fetch inbox appointments
         const data = await model.getInboxAppointments(user_location, parseInt(limit), parseInt(offset));
 
         for (const key in data) {
             const value = data[key];
-
-            // Fetch user details for the current user_id
             const tuserdata = await userModel.findOne(value.user_id);
-            if (tuserdata && tuserdata.length > 0) {
-                const userData = tuserdata[0];
+            if (!tuserdata || tuserdata.length === 0) {
+                continue; // Skip this record or handle missing user data appropriately
+            }
+
+            // Update the 'toa' field
+            data[key].toa = value.toa !== 'offline' ? 'online' : 'In-Person';
+
+            // Extract user data for the current record
+            const userData = tuserdata[0];
+
+            // Handle appointments for 'me' and others
+            if (value.for_ap === 'me') {
                 Object.assign(data[key], {
+                    full_name: userData.full_name || '',
+                    photo: userData.photo ? `${userData.photo}` : '', // Modified
+                    designation: userData.designation || '',
+                    ref_name: value.ref_name,
+                    ref_country_code: value.ref_country_code,
+                    ref_mobile_no: value.ref_mobile_no,
+                    country_code: userData.country_code || '',
+                    phone_no: userData.phone_no || '',
                     user_full_name: userData.full_name || '',
-                    user_email_id: userData.email_id || '',
-                    user_photo: userData.photo || '',
-                    user_designation: userData.designation || '',
-                    user_country_code: userData.country_code || '',
-                    user_phone_no: userData.phone_no || ''
+                    user_email_id: userData.email_id || ''
+                });
+            } else {
+                Object.assign(data[key], {
+                    full_name: value.full_name,
+                    photo: value.picture ? `${value.picture}` : '', // Modified
+                    designation: value.designation,
+                    ref_name: userData.full_name || '',
+                    ref_country_code: userData.country_code || '',
+                    ref_mobile_no: userData.phone_no || '',
+                    country_code: value.country_code,
+                    phone_no: value.mobile_no
                 });
             }
 
-            // Process 'assign_to' and 'assigned_by' details
+            // Fetch and assign details for 'assigned to' and 'assigned by' users
             const assignToData = await adminUserModel.findOne(value.assign_to);
             const assignedByData = await adminUserModel.findOne(value.assigned_by);
 
@@ -1947,23 +1969,18 @@ exports.getInboxData = async (req, res, next) => {
                 assigned_by_email_id: assignedByData[0]?.email_id || '',
                 assigned_by_sort_name: assignedByData[0]?.sort_name || ''
             });
-
-            // Update the 'toa' field
-            data[key].toa = value.toa !== 'offline' ? 'online' : 'In-Person';
         }
 
-        if (data.length > 0) {
-            res.status(200).send({ message: `${data.length} records found`, data });
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send({ message: `${data.length} records found`, data });
         } else {
-            res.status(404).send({ message: 'No appointments found !!' });
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointments found !!" });
         }
     } catch (e) {
         console.error(`Error in getInboxData`, e);
-        res.status(500).send({ message: e.message });
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
-
-
 
 
 // Divya --added on 23 Dec 2024
