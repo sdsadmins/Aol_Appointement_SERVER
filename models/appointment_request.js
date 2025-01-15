@@ -810,7 +810,7 @@ exports.getAppointmentInfoById = async (id) => {
         }
 
         // Construct the S3 URL for the QR code
-        const qrCodeUrl = `${s3BaseUrl}/qr_code_${appointment.ap_id}.png`;
+        const qrCodeUrl = `${s3BaseUrl}/qr_code_${appointment.id}.png`;
         appointment.qr_code_url = qrCodeUrl;
     }
 
