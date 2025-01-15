@@ -1597,13 +1597,13 @@ exports.schedule_appointment = async (req, res, next) => {
 
         // Generate QR Code - Fixed Logic
         let qrCodeData;
-        if (parseInt(ap_location) === 1) {  // Ensure numeric comparison
-            qrCodeData = `Venue: ${venue}, Name: ${full_name}, Date: ${ap_date}, Time: ${ap_time}, No. of People: ${no_people}`;
-            console.log("Generating QR code for venue:", venue, full_name, ap_date, ap_time, no_people);
-        } else {
+        // if (parseInt(ap_location) === 1) {  // Ensure numeric comparison
+        //     qrCodeData = `Venue: ${venue}, Name: ${full_name}, Date: ${ap_date}, Time: ${ap_time}, No. of People: ${no_people}`;
+        //     console.log("Generating QR code for venue:", venue, full_name, ap_date, ap_time, no_people);
+        // } else {
             qrCodeData = appid.toString();  // Use appointment ID for other locations
             console.log("Generating QR code for appointment ID:", appid);
-        }
+        // }
 
         const qrCodeBase64 = await generateQRCode(qrCodeData);
 
@@ -1717,7 +1717,8 @@ exports.schedule_appointment = async (req, res, next) => {
                     image: qrCodeBase64,
                     appointmentId: appid,
                     venue: venue,
-                    generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
+                    // generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
+                    generatedFor: 'appointmentId'
                 }
             });
         } else {
