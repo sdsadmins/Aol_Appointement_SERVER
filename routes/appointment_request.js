@@ -10,7 +10,7 @@ const router = express.Router();
 // router.post('/', checkAuth, bodyValidator(createDto), controller.create);
 // router.get('/:id', checkAuth, controller.getOne);
 // router.put('/:id', checkAuth, updateValidator(createDto), controller.update);    
-// router.patch('/:id', checkAuth, controller.update);
+router.post('/:id', checkAuth, controller.update);
 // router.delete('/:id', checkAuth, controller.remove);
 router.post('/appointmentform/:user_id', checkAuth, controller.submitSelfAppointment);
 router.get('/search/:searchKey', checkAuth, controller.search);
