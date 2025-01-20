@@ -816,3 +816,30 @@ exports.getAppointmentInfoById = async (id) => {
 
     return appointment;
 };
+
+exports.findByIdOrName = async (apId, name) => {
+    let query = `SELECT * FROM appointment_request WHERE 1 = 1`; // Base query
+
+    const params = [];
+    if (apId) {
+        query += ` AND ap_id = ?`;
+        params.push(apId);
+    }
+    if (name) {
+        query += ` AND full_name = ?`;
+        params.push(name);
+    }
+    // const appointments = await getRows(query, params);
+
+    // const userPromises = appointments.map(async (appointments) => {
+    //     const userData = await userModel.findOne(appointments.user_id);
+    //     return {
+    //         ...appointments,
+    //         user: userData[0] || null,
+    //     };
+    // });
+    // const appointmentWithUserData = await Promise.all(userPromises);
+    
+    // return appointmentWithUserData;
+    return getRows(query, params);
+};

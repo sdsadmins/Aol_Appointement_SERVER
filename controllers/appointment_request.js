@@ -41,26 +41,28 @@ if (!fs.existsSync(uploadsDir)) {
 const storage = multer.memoryStorage(); 
 // Configure multer with file filtering
 const upload = multer({
-	storage: storage,
-	fileFilter: (req, file, cb) => {
-		const allowedTypes = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
-		const ext = path.extname(file.originalname).toLowerCase();
-		if (!allowedTypes.includes(ext)) {
-			cb(new Error('Only PDF, DOC, DOCX, JPG, JPEG, and PNG files are allowed'));
-		} else {
-			cb(null, true);
-		}
-	},
-	limits: {
-		fileSize: 5 * 1024 * 1024 // 5MB limit
-	}
-}).fields([{ name: 'attachment', maxCount: 1 }, { name: 'picture', maxCount: 1 }]);
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        // const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.avif'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        console.log('File Extension:', ext);
+        console.log('File MIME Type:', file.mimetype);
 
+        // if (!allowedExtensions.includes(ext)) {
+        //     return cb(new Error(`Only ${allowedExtensions.join(', ')} files are allowed`));
+        // }
+        cb(null, true);
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+}).fields([{ name: 'attachment', maxCount: 1 }, { name: 'picture', maxCount: 1 }]);
 // Add multer storage configuration at the top of the file
 const uploadAdmin = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'];
+        // const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'];
+        const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.avif'];
         const extension = path.extname(file.originalname).toLowerCase();
         if (!allowedExtensions.includes(extension)) {
             return cb(new Error("Only JPG, JPEG, PNG, PDF, DOC, and DOCX files are allowed"));
@@ -1568,49 +1570,314 @@ exports.markMultipleAsDeleted = async (req, res, next) => {
 
 // Helper function to generate QR Code in base64 format
 
-exports.schedule_appointment = async (req, res, next) => {
-    try {
-        const { 
-            appid, 
-            admin_user_id, 
-            ap_date, 
-            ap_time, 
-            meet_type, 
-            venue, 
-            to_be_opt, 
-            stopsendemailmessage, 
-            send_vds, 
-            stay_avail,
-            referenceEmail,
-            full_name,
-            no_people,
-            for_the_loc,
-            ap_location
-        } = req.body;
+// exports.schedule_appointment = async (req, res, next) => {
+//     try {
+//         const { 
+//             appid, 
+//             admin_user_id, 
+//             ap_date, 
+//             ap_time, 
+//             meet_type, 
+//             venue, 
+//             to_be_opt, 
+//             stopsendemailmessage, 
+//             send_vds, 
+//             stay_avail,
+//             referenceEmail,
+//             full_name,
+//             no_people,
+//             for_the_loc,
+//             ap_location
+//         } = req.body;
 
-        // Get Appointment Data By ID
-        const app_data = await model.findOneById(appid);
+//         // Get Appointment Data By ID
+//         const app_data = await model.findOneById(appid);
         
-        if (!app_data || app_data.length === 0) {
-            return res.status(404).send({ message: "Appointment not found." });
-        }
+//         if (!app_data || app_data.length === 0) {
+//             return res.status(404).send({ message: "Appointment not found." });
+//         }
 
-        // Generate QR Code - Fixed Logic
-        let qrCodeData;
-        // if (parseInt(ap_location) === 1) {  // Ensure numeric comparison
-        //     qrCodeData = `Venue: ${venue}, Name: ${full_name}, Date: ${ap_date}, Time: ${ap_time}, No. of People: ${no_people}`;
-        //     console.log("Generating QR code for venue:", venue, full_name, ap_date, ap_time, no_people);
-        // } else {
-            qrCodeData = appid.toString();  // Use appointment ID for other locations
-            console.log("Generating QR code for appointment ID:", appid);
-        // }
+//         // Generate QR Code - Fixed Logic
+//         let qrCodeData;
+//         // if (parseInt(ap_location) === 1) {  // Ensure numeric comparison
+//         //     qrCodeData = `Venue: ${venue}, Name: ${full_name}, Date: ${ap_date}, Time: ${ap_time}, No. of People: ${no_people}`;
+//         //     console.log("Generating QR code for venue:", venue, full_name, ap_date, ap_time, no_people);
+//         // } else {
+//             qrCodeData = appid.toString();  // Use appointment ID for other locations
+//             console.log("Generating QR code for appointment ID:", appid);
+//         // }
 
+//         const qrCodeBase64 = await generateQRCode(qrCodeData);
+
+//         if (!qrCodeBase64) {
+//             console.error('Failed to generate QR code.');
+//             return res.status(500).send({ message: 'QR Code generation failed' });
+//         }
+
+//         // Upload QR Code to S3
+//         const uploadParams = {
+//             Bucket: process.env.AWS_S3_BUCKETNAME,
+//             Key: `qr_code_${appid}.png`, // Unique file name
+//             Body: Buffer.from(qrCodeBase64.split(",")[1], 'base64'), // Convert base64 to buffer
+//             ContentType: 'image/png' // Set the content type
+//         };
+
+//         // Upload to S3
+//         const uploadResult = await s3.upload(uploadParams).promise();
+//         console.log('QR Code uploaded successfully:', uploadResult.Location); // Log the S3 URL
+
+//         // Process appointment status
+//         let ap_status = app_data[0].ap_status;
+//         let rescheduled_app = '';
+//         let approve_status = '';
+
+//         if (['Scheduled', 'TB R/S', 'SB', 'GK', 'PB'].includes(ap_status)) {
+//             rescheduled_app = 'Rescheduled';
+//         }
+
+//         if (ap_date && ap_time) {
+//             approve_status = 'Scheduled';
+//             if (['SB', 'GK', 'PB'].includes(ap_status)) {
+//                 approve_status = ap_status;
+//             }
+//         }
+
+//         if (to_be_opt) {
+//             approve_status = 'TB R/S';
+//         }
+
+//         const data = {
+//             ap_status: approve_status || null,
+//             ap_date: ap_date,
+//             app_visit: venue,
+//             mtype: meet_type,
+//             deleted_app: '0',
+//             slotted_by: admin_user_id,
+//             stay_avail: stay_avail ? 'Yes' : '',
+//             ap_location: ap_location // Use ap_location from req.body
+//         };
+
+//         if (ap_time) {
+//             const dateTime = `${ap_date} ${ap_time}`;
+//             data.ap_time = new Date(dateTime).getTime() / 1000;
+//         }
+
+//         if (rescheduled_app === 'Rescheduled') {
+//             data.admit_status = '';
+//             data.admitted_by = '0';
+//         }
+
+//         const result = await model.update(app_data[0].id, data);
+
+//         if (result) {
+//             // Fetch the email template
+//             const emailTemplateModel = require('../models/email_template');
+//             const emailTemplate = await emailTemplateModel.findOne(for_the_loc === 'IND' ? 8 : 35);
+
+//             if (!emailTemplate || emailTemplate.length === 0) {
+//                 console.error('Email template not found');
+//                 return res.status(500).send({ message: 'Email template not found' });
+//             }
+
+//             // Prepare email content with QR Code URL
+//             const emailBody = emailTemplate[0].template_data
+//                 .replace('{$full_name}', full_name)
+//                 .replace('{$AID}', appid)
+//                 .replace('{$date}', ap_date)
+//                 .replace('{$time}', ap_time)
+//                 .replace('{$no_people}', no_people)
+//                 .replace('{$app_location}', venue)
+//                 .replace('{$link}', `<a href="${uploadResult.Location}">View QR Code</a>`)
+//                 .replace('{$qr_code_image}', `<img src="cid:qr_code_image" alt="QR Code" style="width:200px; height:200px;"/>`); // Embed QR Code
+
+//             // Send email with the selected message
+//             const emailResult = await emailService.sendMailer(
+//                 referenceEmail,
+//                 'Appointment Scheduled',
+//                 emailBody,
+//                 {
+//                     attachments: [
+//                         {
+//                             filename: `qr_code_${appid}.png`,
+//                             content: qrCodeBase64.split(",")[1], // Extract base64 content
+//                             encoding: 'base64',
+//                             cid: 'qr_code_image' // Content ID for embedding in email
+//                         }
+//                     ]
+//                 }
+//             );
+
+//             console.log('Email sent successfully:', emailResult); // Log the email result
+
+//             // Respond with success
+//             res.status(200).send({ 
+//                 message: 'Appointment scheduled successfully.',
+//                 qrCodeUrl: uploadResult.Location, // Include the S3 URL in the response
+//                 emailResult, // Include emailResult in the response
+//                 qrCode: {
+//                     data: qrCodeData,
+//                     image: qrCodeBase64,
+//                     appointmentId: appid,
+//                     venue: venue,
+//                     // generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
+//                     generatedFor: 'appointmentId'
+//                 }
+//             });
+//         } else {
+//             res.status(500).send({ message: 'Failed to schedule appointment!' });
+//         }
+//     } catch (error) {
+//         console.error('Error in schedule_appointment:', error);
+//         res.status(500).send({ 
+//             message: 'An error occurred while scheduling the appointment.',
+//             error: error.message 
+//         });
+//     }
+// };
+
+exports.schedule_appointment = async (req, res, next) => {
+    // console.log("schedule_appointment controller");
+    // console.log(req.body);
+    const { appid, admin_user_id, ap_date, ap_time, meet_type, venue, to_be_opt, stopsendemailmessage, send_vds, stay_avail } = req.body;
+    // Get Appointment Data By ID
+    const app_data = await model.findOneById(appid);
+    // console.log("appointment",app_data); 
+    // Get Logged in User data
+    const sec_data = await adminUserModel.findOne(admin_user_id);
+    // console.log("sec_data",sec_data);
+    let secretary_user_location = sec_data[0].user_location;
+    let secretary_user_name = sec_data[0].full_name;
+    let extra_sign = sec_data[0].extra_sign;
+    let ap_status = app_data[0].ap_status;
+    let ap_location = app_data[0].ap_location;
+    const EURloc = [22, 23, 24, 25, 26, 27, 28, 30, 31];
+    // Get User Data By ID
+    const user_data = await userModel.findOne(app_data[0].user_id);
+    // console.log("user_data",user_data);
+    let full_name, email_id, mobile_no;
+    // Get User Details
+    if(app_data[0].for_ap == "me"){
+        full_name = user_data[0].full_name;
+        email_id = user_data[0].email_id;
+        mobile_no = user_data[0].phone_no;
+    } else {
+        full_name = app_data[0]['full_name'];
+        email_id = app_data[0]['email_id'];
+        mobile_no = app_data[0]['mobile_no'];
+    }
+    // console.log("user data",full_name, email_id, mobile_no);
+    
+    // let app_status = "";
+    let logaptStatus = ap_status;
+    let approve_status = "";
+    let rescheduled_app = "";
+    if(ap_status == "Scheduled"){
+        rescheduled_app = "Rescheduled";
+    }else if(ap_status == "Pending"){
+        rescheduled_app = "Scheduled";
+    }else if(ap_status=="TB R/S"){
+        rescheduled_app = "Rescheduled";
+    }else if(ap_status == "SB"){
+        rescheduled_app = "Rescheduled";
+    } else if(ap_status == "GK"){
+        rescheduled_app = "Rescheduled";
+    } else if(ap_status == "PB"){
+        rescheduled_app = "Rescheduled";
+    } else{
+        rescheduled_app = null;
+    }
+    if(ap_date && ap_time){
+        approve_status = "Scheduled";
+        logaptStatus = "Scheduled";
+    }
+    if(ap_date && ap_time && ap_status == "SB"){
+        approve_status = "SB";
+        logaptStatus = "Rescheduled";
+    }
+    if(ap_date && ap_time && ap_status == "GK"){
+        approve_status = "GK";
+        logaptStatus = "Rescheduled";
+    }
+    if(ap_date && ap_time && ap_status == "PB"){
+        approve_status = "PB";
+        logaptStatus = "Rescheduled";
+    }
+    if(to_be_opt){
+        approve_status = "TB R/S";
+        logaptStatus = "Rescheduled";
+    }
+    if(rescheduled_app == "Rescheduled"){
+        logaptStatus = "Rescheduled";
+    }
+    
+    // if(venue == "Satsang Backstage"){
+    //  approve_status = "SB";
+    // }
+    // if(venue == "Gurukul"){
+    //  approve_status = "GK";
+    // }
+    // if(venue == "Puja Backstage"){
+    //  approve_status = "PB";
+    // }
+    let date_time = '';
+    if (ap_date && ap_time) {
+        date_time = `${ap_date} ${ap_time}`;
+    }
+    // if($post['app_location'] !='' && $post['app_location'] != 'undefined'){
+    //  if($post['venue'] == 'undefined'){
+    //      $post['venue'] = $post['app_location'];
+    //      $_POST['venue'] = $post['app_location'];
+    //  }
+    // }
+    
+    const data = {
+        ap_status: approve_status || null, // Using `|| null` for undefined fallback
+        ap_date: ap_date,
+        app_visit: venue, 
+        mtype: meet_type,
+        deleted_app: '0',
+        slotted_by: admin_user_id
+    };
+    // if (isset($post['send_arrival']) && $post['send_arrival']=="Yes") {
+    //  $data['arrival_time'] = $post['arrival_time'];
+    // }else{
+    //  $data['arrival_time'] = NULL;
+    // }
+    // if (isset($post['send_schedule']) && $post['send_schedule']=="Yes") {
+    //  $data['schedule_date'] = $post['schedule_date'];
+    //  $data['schedule_time'] = $post['schedule_time'];
+    //  $data['send_schedule'] = $post['send_schedule'];
+    // }else{
+    //  $data['schedule_date'] = NULL;
+    //  $data['schedule_time'] = NULL;
+    //  $data['send_schedule'] = 'No';
+    //  $post['send_schedule'] = "No";
+    // }
+    if(stay_avail){
+        data.stay_avail = "Yes";
+    } else {
+        data.stay_avail = "";
+    }
+    if (ap_time !== '') {
+        data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
+    }
+    if(rescheduled_app == "Rescheduled"){
+        data.admit_status = "";
+        data.admitted_by = "0";
+    }
+    const result = await model.update(app_data[0].id, data);
+    // console.log("result",result);
+    // console.log("update data",data);
+    if (result && !_.isEmpty(result)) {
+        // Generate QR Code - HOLD
+        // Conditional QR Code Generation
+        let qrCodeData = ap_location === 1 ? venue : app_data[0].id.toString();
         const qrCodeBase64 = await generateQRCode(qrCodeData);
-
         if (!qrCodeBase64) {
             console.error('Failed to generate QR code.');
             return res.status(500).send({ message: 'QR Code generation failed' });
         }
+        console.log('Generated QR Code Base64:', qrCodeBase64);
 
         // Upload QR Code to S3
         const uploadParams = {
@@ -1619,120 +1886,304 @@ exports.schedule_appointment = async (req, res, next) => {
             Body: Buffer.from(qrCodeBase64.split(",")[1], 'base64'), // Convert base64 to buffer
             ContentType: 'image/png' // Set the content type
         };
-
-        // Upload to S3
-        const uploadResult = await s3.upload(uploadParams).promise();
-        console.log('QR Code uploaded successfully:', uploadResult.Location); // Log the S3 URL
-
-        // Process appointment status
-        let ap_status = app_data[0].ap_status;
-        let rescheduled_app = '';
-        let approve_status = '';
-
-        if (['Scheduled', 'TB R/S', 'SB', 'GK', 'PB'].includes(ap_status)) {
-            rescheduled_app = 'Rescheduled';
-        }
-
-        if (ap_date && ap_time) {
-            approve_status = 'Scheduled';
-            if (['SB', 'GK', 'PB'].includes(ap_status)) {
-                approve_status = ap_status;
-            }
-        }
-
-        if (to_be_opt) {
-            approve_status = 'TB R/S';
-        }
-
-        const data = {
-            ap_status: approve_status || null,
-            ap_date: ap_date,
-            app_visit: venue,
-            mtype: meet_type,
-            deleted_app: '0',
-            slotted_by: admin_user_id,
-            stay_avail: stay_avail ? 'Yes' : '',
-            ap_location: ap_location // Use ap_location from req.body
-        };
-
-        if (ap_time) {
-            const dateTime = `${ap_date} ${ap_time}`;
-            data.ap_time = new Date(dateTime).getTime() / 1000;
-        }
-
-        if (rescheduled_app === 'Rescheduled') {
-            data.admit_status = '';
-            data.admitted_by = '0';
-        }
-
-        const result = await model.update(app_data[0].id, data);
-
-        if (result) {
-            // Fetch the email template
-            const emailTemplateModel = require('../models/email_template');
-            const emailTemplate = await emailTemplateModel.findOne(for_the_loc === 'IND' ? 8 : 35);
-
-            if (!emailTemplate || emailTemplate.length === 0) {
-                console.error('Email template not found');
-                return res.status(500).send({ message: 'Email template not found' });
-            }
-
-            // Prepare email content with QR Code URL
-            const emailBody = emailTemplate[0].template_data
-                .replace('{$full_name}', full_name)
-                .replace('{$AID}', appid)
-                .replace('{$date}', ap_date)
-                .replace('{$time}', ap_time)
-                .replace('{$no_people}', no_people)
-                .replace('{$app_location}', venue)
-                .replace('{$link}', `<a href="${uploadResult.Location}">View QR Code</a>`)
-                .replace('{$qr_code_image}', `<img src="cid:qr_code_image" alt="QR Code" style="width:200px; height:200px;"/>`); // Embed QR Code
-
-            // Send email with the selected message
-            const emailResult = await emailService.sendMailer(
-                referenceEmail,
-                'Appointment Scheduled',
-                emailBody,
-                {
-                    attachments: [
-                        {
-                            filename: `qr_code_${appid}.png`,
-                            content: qrCodeBase64.split(",")[1], // Extract base64 content
-                            encoding: 'base64',
-                            cid: 'qr_code_image' // Content ID for embedding in email
-                        }
-                    ]
-                }
-            );
-
-            console.log('Email sent successfully:', emailResult); // Log the email result
-
-            // Respond with success
-            res.status(200).send({ 
-                message: 'Appointment scheduled successfully.',
-                qrCodeUrl: uploadResult.Location, // Include the S3 URL in the response
-                emailResult, // Include emailResult in the response
-                qrCode: {
-                    data: qrCodeData,
-                    image: qrCodeBase64,
-                    appointmentId: appid,
-                    venue: venue,
-                    // generatedFor: ap_location === 1 ? 'venue' : 'appointmentId'
-                    generatedFor: 'appointmentId'
-                }
+        let uploadResult;
+        try {
+             uploadResult = await s3.upload(uploadParams).promise();
+            console.log('QR Code uploaded successfully:', uploadResult.Location); // Log the S3 URL
+            // Save the S3 URL to appointment data if needed
+            data.qr_code_url = uploadResult.Location; // Save the URL to the appointment data
+        } catch (uploadError) {
+            console.error('Error uploading QR code to S3:', uploadError);
+            return res.status(500).send({
+                message: 'Failed to upload QR Code to S3.',
+                error: uploadError.message
             });
-        } else {
-            res.status(500).send({ message: 'Failed to schedule appointment!' });
         }
-    } catch (error) {
-        console.error('Error in schedule_appointment:', error);
-        res.status(500).send({ 
-            message: 'An error occurred while scheduling the appointment.',
-            error: error.message 
-        });
-    }
-};
 
+        // Save QR Code image to file
+        // const uploadsDir = path.join(__dirname, '../uploads');
+        // const qrCodeImagePath = path.join(uploadsDir, `qr_code_${appid}.png`);
+        // const base64Image = qrCodeBase64.replace(/^data:image\/png;base64,/, '');
+        // // Ensure the uploads directory exists
+        // if (!fs.existsSync(uploadsDir)) {
+        //     fs.mkdirSync(uploadsDir, { recursive: true });
+        // }
+        // try {
+        //     fs.writeFileSync(qrCodeImagePath, base64Image, 'base64');
+        //     console.log('QR Code image saved successfully at:', qrCodeImagePath);
+        // } catch (err) {
+        //     console.error('Error saving QR Code image:', err);
+        //     return res.status(500).send({ message: 'Failed to save QR Code image.' });
+        // }
+        // console.log("Appointment updated !!");
+        // Re-scheduled Logs --added on 22 Aug 2024
+        const apt_his_data = {
+            ap_id: "",
+            ap_date: ap_date,
+            mtype: meet_type,
+            app_visit: venue, 
+            ap_status: logaptStatus, 
+            slotted_by: admin_user_id
+        };
+        if (ap_time !== '') {
+            apt_his_data.ap_time = new Date(date_time).getTime() / 1000; // Convert to UNIX timestamp (in seconds)
+        }
+        // $apthisqry = $this->db->insert('appt_req_history', $apt_his_data);
+        // End Re-scheduled Logs
+        // Update Assign to
+        // console.log("admin role",sec_data[0].role);
+        if(sec_data[0].role == "secretary"){
+            if(approve_status == 'Scheduled' || approve_status == 'TB R/S'){
+                if(app_data[0].assign_to == ""){
+                    const assigntodata = {
+                        assign_to: admin_user_id
+                    }
+                    const assigntoresult = await model.update(app_data[0].id, assigntodata);
+                }
+            }
+        } else {
+            console.log("no assign to update");
+        }
+        // Send Email and SMS
+        if(!stopsendemailmessage){
+            if (ap_time !== '') {
+                const aptime = new Date(`1970-01-01T${ap_time}`).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                // post.ap_time = time;
+                // console.log("ap_time",aptime);
+            }
+            // if($post['send_arrival'] == 'Yes'){
+            //  $post['ap_time'] = date('h:i A',strtotime($post['arrival_time']));
+            // }
+            let get_temp_data, getSmsData;
+            if (rescheduled_app == "Rescheduled") {
+                if (EURloc.includes(ap_location)) {
+                    // Europe location found
+                    get_temp_data = await emailModel.findOne(41);
+                    // console.log("Europe",getTempData);
+                } else {
+                    get_temp_data = await emailModel.findOne(2);
+                    getSmsData = await smsModel.findOne(3);
+                    // console.log("non Europe",getTempData, getSmsData);
+                }
+            }
+            if (ap_date && ap_time && rescheduled_app != "Rescheduled") {
+                if (EURloc.includes(ap_location)) {
+                    // Europe location found
+                    get_temp_data = await emailModel.findOne(40);
+                } else {
+                    get_temp_data = await emailModel.findOne(1);
+                    getSmsData = await smsModel.findOne(2);
+                }
+            }
+            if (approve_status == 'TB R/S') {
+                if(app_data[0].ap_status == "TB R/S"){ 
+                    if (EURloc.includes(ap_location)) {
+                        // Europe location found
+                        get_temp_data = await emailModel.findOne(41);
+                    } else {
+                        get_temp_data = await emailModel.findOne(39);
+                        getSmsData = await smsModel.findOne(5);
+                    }
+                }else{
+                    if (EURloc.includes(ap_location)) {
+                        // Europe location found
+                        get_temp_data = await emailModel.findOne(40);
+                    } else {
+                        if(venue == "Special Enclosure - Shiva Temple, next to Yoga school, Art of Living International Center, Bangalore."){
+                            get_temp_data = await emailModel.findOne(38);
+                        } else {
+                            get_temp_data = await emailModel.findOne(9);
+                        }
+                        getSmsData = await smsModel.findOne(5);
+                    }
+                }
+            }
+            if (approve_status == 'SB') {
+                get_temp_data = await emailModel.findOne(42);
+            }
+            
+            if (approve_status == 'GK') {
+                get_temp_data = await emailModel.findOne(43);
+            }
+            // console.log(get_temp_data,getSmsData);
+            // console.log(get_temp_data);
+            const email_template_subject = {};
+            const email_template_data = {};
+            if (rescheduled_app == 'Rescheduled' || approve_status == 'Scheduled' || approve_status == 'TB R/S' || approve_status == 'SB' || approve_status == 'GK' || approve_status == 'PB') {
+                // Extract the email template subject and body
+                email_template_subject.body = get_temp_data[0].template_subject;
+                email_template_data.body = get_temp_data[0].template_data;
+                // Replace '{$SUB}' in the email body if it exists
+                // if (email_template_data.body.includes('{$SUB}')) {
+                //  email_template_data.body = email_template_data.body.replace('{$SUB}', app_data[0].meet_subject);
+                // }
+                // Get Appointment Data By ID
+                const capp_data = await model.findOneById(appid);
+                const zoom_pw = `<br>use password: ${capp_data[0].password}`;
+                if(capp_data[0].app_visit != 'undefined' || capp_data[0].app_visit != '')
+                {
+                    const aplocation = capp_data[0].ap_location;
+                    let ji = "";
+                    let app_visit = capp_data[0].app_visit;
+                    
+                    if(aplocation !== '1' && aplocation !== '3' && aplocation !== '15'){
+                        ji = '';
+                    }else{
+                        ji = 'Ji';
+                    }
+                    if(capp_data[0].app_visit == 'Online Zoom Meeting' && capp_data[0].join_url != '')
+                    {
+                        app_visit = app_visit+'<br><a href='+capp_data[0].join_url+'> Click Here For Zoom Link</a>'+$zoom_pw;
+                    }
+                    if (email_template_data.body.includes('{$app_location}')) {
+                        email_template_data.body = email_template_data.body.replace(
+                            '{$app_location}',
+                            app_visit
+                        );
+                    }
+                    if (capp_data[0].app_visit === 'Online Zoom Meeting' && capp_data[0].join_url === '') {
+                        return true;
+                    }
+                    let email_note = '';
+                    if (capp_data[0].app_visit === 'Online Zoom Meeting') {
+                        email_note = '<b>Note:</b> Please make sure to join the Zoom Meeting 5-10 minutes before the given time.';
+                    } else {
+                        if (ap_location !== "1") {
+                            email_note = "<p><strong>NOTE:</strong> Please come to the above location 15 minutes prior to your scheduled time.</p>";
+                        } else {
+                            email_note = "<p><strong>NOTE:</strong> Please come to the above location 15 minutes prior to your scheduled time. Kindly do not bring any flowers to the appointment / darshan venue.";
+                        }
+                    }
+                    if (stay_avail) {
+                        email_note = email_note;
+                    } else {
+                        if (ap_location === "1") {
+                            email_note = email_note + "This appointment is not a confirmation for your stay at the Ashram. You are requested to check with Ashram Housing for availability of accommodation.<br>";
+                        }
+                    }
+                    
+                    if(approve_status == "GK" || approve_status == "PB"){
+                        email_note = email_note + "Women in their monthly cycle are requested to refrain from going to Gurukul or Puja backstage. Please let us know if you are on your monthly cycle and we will arrange an alternate venue for the darshan.";
+                    }
+                    if (ap_location === "1") {
+                        email_note =  email_note + "<br/>Please note that our official photographer will be taking your pictures with Gurudev which can be accessed by logging onto https://divineapp.findmypik.com. Alternatively you may write to darshanline@yahoo.com for assistance with pictures.";
+                    }
+                    email_note = email_note + "</p>";
+                    let subject = email_template_subject.body;
+                    subject = subject.replace("{$AID}",app_data[0].ap_id);
+                    // console.log(subject);
+                    const getOffLoc = await locModel.findOneByAddress(venue);
+                    // console.log("getOffLoc",getOffLoc);
+                    let sms_ji = '';
+                    let sms_app_location = capp_data[0].app_visit;
+                    if (aplocation !== '1' && aplocation !== '3' && aplocation !== '15') {
+                        sms_ji = '';
+                    } else {
+                        sms_ji = 'Ji';
+                        if (approve_status === 'TB R/S') {
+                            if (aplocation === '1') {
+                                sms_app_location = getOffLoc[0].short_name + "  15 minutes";
+                            } else {
+                                sms_app_location = capp_data[0].app_visit;
+                            }
+                        } else {
+                            if (aplocation === '1') {
+                                sms_app_location = getOffLoc[0].short_name;
+                            } else {
+                                sms_app_location = capp_data[0].app_visit;
+                            }
+                        }
+                    }
+                    // const rsvp_url = `${base_url}rsvp/update/r/${appid}`;
+                    let post_people = app_data[0].no_people;
+                    let no_people = "";
+                    if(post_people != "1"){
+                        no_people = post_people+" people";
+                    } else {
+                        no_people = post_people+" person"; 
+                    }
+                    // Replace template variables in the email body
+                    email_template_data.body = email_template_data.body
+                        .replace('{$AID}',app_data[0].ap_id)
+                        .replace('{$full_name}',full_name)
+                        .replace('{$ji}',ji)
+                        .replace('{$date}',new Date(ap_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }))
+                        .replace('{$time}',ap_time)
+                        .replace('{$no_people}',no_people)
+                        .replace('{$email_note}',email_note)
+                        .replace('{$meet_subject}',app_data[0].meet_subject)
+                        .replace('{$site_url}',"")
+                        .replace("{$link}",`<a href="${uploadResult.Location}">Please click on this link for Security ePass for entry</a>`)
+                        .replace("{$qr_code}",`<img src="${uploadResult.Location}">`);
+                    // console.log("templateData",email_template_data.body);
+                    
+                    const email_footer_data = await emailFooterModel.findOne(secretary_user_location);
+                    // console.log("email_footer_data",email_footer_data);
+                    const email_footer_template = {};
+                    
+                    email_footer_template.body = email_footer_data[0].footer_content;
+                    // Email footer body template
+                    let footer = email_footer_template.body;
+                    // Replace variables in the template
+                    footer = footer
+                        .replace("{$secretary_user_name}", secretary_user_name)
+                        .replace("{$extra_sign}",extra_sign);
+                    // console.log('Footer:', footer);
+                    let templateData = email_template_data.body;
+                    
+                    if (EURloc.includes(ap_location)) {
+                        // Do Nothing
+                    } else {
+                        templateData += footer;
+                    }
+                    // console.log("email template data",templateData);
+                    // return;
+                    // Send Email
+                    // from email, from name, to, subject, mailtype = html, message = templateData
+                    try{
+                        const emailResult = await emailService.sendMailer(
+                            email_id,
+                            subject,
+                            templateData,
+                            {
+                                attachments: [
+                                    {
+                                        filename: `qr_code_${appid}.png`,
+                                        content: qrCodeBase64.split(",")[1], // Extract base64 content
+                                        encoding: 'base64',
+                                        cid: 'qr_code_image' // Content ID for embedding in email
+                                    }
+                                ]
+                            }
+                        );
+        
+                        console.log('Email sent successfully:', emailResult);
+                        // Respond with success
+                        res.status(StatusCodes.OK).send({ message: 'Appointment scheduled successfully.' });
+                    } catch (emailError) {
+                        console.error('Error sending email:', emailError);
+                        return res.status(500).send({ 
+                            message: 'Failed to send email with QR code.',
+                            error: emailError.message 
+                        });
+                    }
+                    // Send SMS [HOLD]
+                }
+                
+            }
+        }
+        // Send VDS Email [HOLD]
+        // return response
+        // res.status(StatusCodes.OK).send({ message: 'Appointment scheduled successfully.' });
+    } else {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: 'Failed to schedule appointment !' });
+    }
+    // res.send('Appointment scheduled');
+};
 async function generateQRCode(data) {
     const QRCode = require('qrcode');
     try {
@@ -2500,5 +2951,26 @@ exports.getAppointmentInfo = async (req, res, next) => {
     }
 };
 
+exports.getAppointmentByIdOrName = async (req, res, next) => {
+    try {
+        const { ap_id, full_name } = req.body; 
 
+        const appointmentData = await model.findByIdOrName(ap_id, full_name);
+
+        if (!_.isEmpty(appointmentData)) {
+            res.status(StatusCodes.OK).send({
+                message: "Appointment details retrieved successfully",
+                code: StatusCodes.OK,
+                success: true,
+                count: appointmentData.length,
+                appointments: appointmentData 
+            });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No appointment found with this ID or name." });
+        }
+    } catch (e) {
+        console.log(`Error in getAppointmentByIdOrName`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
+};
 
