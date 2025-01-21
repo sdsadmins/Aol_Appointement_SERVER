@@ -346,6 +346,7 @@ exports.submitGuestAppointment = async (req, res, next) => {
 			// Ensure files are captured correctly
 			const attachments = req.files['attachment'] ? req.files['attachment'] : [];
 			const pictures = req.files['picture'] ? req.files['picture'] : [];
+			const noPeopleImages = req.files['no_people_images'] ? req.files['no_people_images'] : [];
 
 			const appointmentData = {
 				ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
@@ -379,7 +380,7 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				ref_country_code: req.body.ref_country_code,
 				ref_mobile_no: req.body.ref_mobile_no,
 				designationcomp: req.body.designationcomp,
-				no_people_images: req.body.no_people_images || '', // Ensure no_people_images is not null
+				no_people_images: '', // Placeholder for S3 URLs
 				no_people_emails: req.body.no_people_emails || '', // Ensure no_people_emails is not null
 				for_ap: "other",
 				ap_status: "Pending",
@@ -415,6 +416,25 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				uploadPromises.push(s3.upload(uploadParamsPicture).promise().then(uploadResult => {
 					appointmentData.picture = uploadResult.Location; // Assign S3 URL to the picture field
 				}));
+			}
+
+				// Upload no_people_images if exists
+			if (noPeopleImages.length > 0) {
+				noPeopleImages.forEach((imageFile, index) => {
+					const uploadParamsImage = {
+						Bucket: process.env.AWS_S3_BUCKETNAME,
+						Key: `no_people_images/${Date.now()}_${index}_${imageFile.originalname}`, // Unique file name
+						Body: imageFile.buffer,
+						ContentType: imageFile.mimetype
+					};
+					uploadPromises.push(s3.upload(uploadParamsImage).promise().then(uploadResult => {
+						if (!appointmentData.no_people_images) {
+							appointmentData.no_people_images = uploadResult.Location;
+						} else {
+							appointmentData.no_people_images += `,${uploadResult.Location}`;
+						}
+					}));
+				});
 			}
 
 			// Wait for all uploads to complete
