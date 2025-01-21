@@ -56,7 +56,11 @@ const upload = multer({
     limits: {
         fileSize: 5 * 1024 * 1024, // 5MB limit
     },
-}).fields([{ name: 'attachment', maxCount: 1 }, { name: 'picture', maxCount: 1 }]);
+}).fields([
+    { name: 'attachment', maxCount: 1 }, 
+    { name: 'picture', maxCount: 1 },
+    { name: 'no_people_images', maxCount: 10 }  // Allow up to 5 images for no_people_images
+]);
 // Add multer storage configuration at the top of the file
 const uploadAdmin = multer({
     storage: storage,
@@ -331,14 +335,13 @@ exports.submitSelfAppointment = async (req, res, next) => {
 };
 
 exports.submitGuestAppointment = async (req, res, next) => {
-	// Ensure upload logic is working correctly
-	upload(req, res, async (err) => {
-		if (err) {
-			console.log("Error during file upload:", err);
-			return res.status(StatusCodes.BAD_REQUEST).send({
-				message: err.message
-			});
-		}
+    upload(req, res, async (err) => {
+        if (err) {
+            console.log("Error during file upload:", err);
+            return res.status(StatusCodes.BAD_REQUEST).send({
+                message: err.message
+            });
+        }
 
 		try {
 			const userId = req.params.user_id;
@@ -418,24 +421,27 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				}));
 			}
 
-				// Upload no_people_images if exists
-			if (noPeopleImages.length > 0) {
-				noPeopleImages.forEach((imageFile, index) => {
-					const uploadParamsImage = {
-						Bucket: process.env.AWS_S3_BUCKETNAME,
-						Key: `no_people_images/${Date.now()}_${index}_${imageFile.originalname}`, // Unique file name
-						Body: imageFile.buffer,
-						ContentType: imageFile.mimetype
-					};
-					uploadPromises.push(s3.upload(uploadParamsImage).promise().then(uploadResult => {
-						if (!appointmentData.no_people_images) {
-							appointmentData.no_people_images = uploadResult.Location;
-						} else {
-							appointmentData.no_people_images += `,${uploadResult.Location}`;
-						}
-					}));
-				});
-			}
+            // Handle no_people_images uploads
+            if (noPeopleImages.length > 0) {
+                const noPeopleImageUrls = [];
+                for (const imageFile of noPeopleImages) {
+                    const uploadParamsImage = {
+                        Bucket: process.env.AWS_S3_BUCKETNAME,
+                        Key: `no_people_images/${Date.now()}_${imageFile.originalname}`,
+                        Body: imageFile.buffer,
+                        ContentType: imageFile.mimetype
+                    };
+                    uploadPromises.push(
+                        s3.upload(uploadParamsImage).promise()
+                            .then(uploadResult => {
+                                noPeopleImageUrls.push(uploadResult.Location);
+                            })
+                    );
+                }
+                // After all uploads complete, join URLs with comma
+                await Promise.all(uploadPromises);
+                appointmentData.no_people_images = noPeopleImageUrls.join(', '); // Store as comma-separated string
+            }
 
 			// Wait for all uploads to complete
 			await Promise.all(uploadPromises);
