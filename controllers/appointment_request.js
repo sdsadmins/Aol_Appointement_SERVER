@@ -2973,4 +2973,55 @@ exports.getAppointmentByIdOrName = async (req, res, next) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
     }
 };
+const isValidDate = (date) => {
+    return !isNaN(new Date(date).getTime());
+};
+
+exports.getAppointmentsByDateRange = async (req, res, next) => {
+    try {
+        const { from_date, to_date, entry_date_time } = req.body;
+
+        // Validate date inputs
+        if ((from_date && !isValidDate(from_date)) || 
+            (to_date && !isValidDate(to_date)) || 
+            (entry_date_time && !isValidDate(entry_date_time))) {
+            return res.status(400).send({
+                message: "Invalid date format. Use ISO 8601 (YYYY-MM-DD).",
+                success: false
+            });
+        }
+
+        if (!from_date && !to_date && !entry_date_time) {
+            return res.status(400).send({ 
+                message: "At least one search parameter (from_date, to_date, or entry_date_time) is required", 
+                success: false 
+            });
+        }
+
+        const appointments = await model.getAppointmentsByDateRange(from_date, to_date, entry_date_time);
+
+        if (appointments && appointments.length > 0) {
+            res.status(200).send({ 
+                message: `${appointments.length} appointments found`,
+                success: true,
+                data: appointments 
+            });
+        } else {
+            res.status(404).send({ 
+                message: "No appointments found for the specified criteria",
+                success: false 
+            });
+        }
+    } catch (error) {
+        console.error('Error in getAppointmentsByDateRange:', error);
+        res.status(500).send({ 
+            message: 'Failed to fetch appointments',
+            success: false,
+            error: error.message 
+        });
+    }
+};
+
+
+
 

@@ -755,14 +755,52 @@ exports.getndateAppointments = async (user_id, show_appts_of, location, datestri
     return appointmentsWithUserData;
 }
 
-exports.getAppointmentsByDateRange = async (fromDate, toDate) => {
-    const query = `
+
+const isValidDate = (date) => {
+    return !isNaN(new Date(date).getTime());
+};
+
+exports.getAppointmentsByDateRange = async (fromDate, toDate, entryDateTime) => {
+    let query = `
         SELECT * 
         FROM appointment_request 
-        WHERE ap_date BETWEEN ? AND ? 
-        AND deleted_app = '0'`; // Ensure deleted appointments are excluded
+        WHERE deleted_app = '0'
+    `;
+    const params = [];
 
-    return getRows(query, [fromDate, toDate]);
+    // Add conditions for dates without time component
+    if (fromDate && isValidDate(fromDate)) {
+        query += ` AND DATE(from_date) = DATE(?)`;
+        params.push(fromDate.split('T')[0]); // Ensure only date is passed
+    }
+
+    if (toDate && isValidDate(toDate)) {
+        query += ` AND DATE(to_date) = DATE(?)`;
+        params.push(toDate.split('T')[0]); // Ensure only date is passed
+    }
+
+    if (entryDateTime && isValidDate(entryDateTime)) {
+        query += ` AND DATE(entry_date_time) = DATE(?)`;
+        params.push(entryDateTime.split('T')[0]); // Ensure only date is passed
+    }
+
+    query += ` ORDER BY ap_date DESC`;
+
+    try {
+        const appointments = await getRows(query, params);
+        return appointments.map(appointment => ({
+            ...appointment,
+            ap_date: appointment.ap_date && !isNaN(new Date(appointment.ap_date).getTime())
+                ? new Date(appointment.ap_date).toISOString().split('T')[0]
+                : null,
+            entry_date_time: appointment.entry_date_time && !isNaN(new Date(appointment.entry_date_time).getTime())
+                ? new Date(appointment.entry_date_time).toISOString().split('T')[0]
+                : null,
+        }));
+    } catch (error) {
+        console.error('Database query error:', error);
+        throw error;
+    }
 };
 
 exports.getAllAppointments = async () => {

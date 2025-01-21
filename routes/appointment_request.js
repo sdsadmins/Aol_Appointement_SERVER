@@ -71,4 +71,7 @@ router.get('/upcomingAppointmentsAndHistory/:user_id/:assign_to', checkAuth, con
 router.get('/appointmentInfo/:id', checkAuth, controller.getAppointmentInfo);
 
 router.get('/getAppointmentByIdOrName', checkAuth, controller.getAppointmentByIdOrName);
+
+router.post('/getAppointmentsByDateRange', checkAuth, controller.getAppointmentsByDateRange);
+
 module.exports = router;
