@@ -379,9 +379,11 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				ref_country_code: req.body.ref_country_code,
 				ref_mobile_no: req.body.ref_mobile_no,
 				designationcomp: req.body.designationcomp,
+				no_people_images: req.body.no_people_images || '', // Ensure no_people_images is not null
+				no_people_emails: req.body.no_people_emails || '', // Ensure no_people_emails is not null
 				for_ap: "other",
 				ap_status: "Pending",
-                entry_date_time: new Date().toISOString(),
+				entry_date_time: new Date().toISOString(),
 			};
 
 			// Upload files to S3
@@ -1653,8 +1655,7 @@ exports.markMultipleAsDeleted = async (req, res, next) => {
 //             mtype: meet_type,
 //             deleted_app: '0',
 //             slotted_by: admin_user_id,
-//             stay_avail: stay_avail ? 'Yes' : '',
-//             ap_location: ap_location // Use ap_location from req.body
+//             stay_avail: stay_avail ? 'Yes' : ''
 //         };
 
 //         if (ap_time) {

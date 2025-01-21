@@ -78,7 +78,9 @@ module.exports = {
 "schedule_time" : { required: false, type: "string"},
 "schedule_send_status" : { required: false, type: "string"},
 "stay_avail" : { required: false, type: "string"},
-"slotted_by" : {required: false, type: "string"}
+"slotted_by" : {required: false, type: "string"},
+"no_people_images": { required: false, type: "string" },
+"no_people_emails": { required: false, type: "string" }
 };
 
 // allowed types - number, string, boolean, object, undefined
