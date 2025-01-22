@@ -272,6 +272,8 @@ exports.submitSelfAppointment = async (req, res, next) => {
                 no_people: req.body.no_people,
                 no_people_names: req.body.no_people_names,
                 no_people_numbers: req.body.no_people_numbers,
+                no_people_images: '',
+                no_people_emails: req.body.no_people_emails || '',
                 from_date: req.body.from_date,
                 to_date: req.body.to_date,
                 attachment: '', // Placeholder for S3 URL
@@ -287,7 +289,7 @@ exports.submitSelfAppointment = async (req, res, next) => {
                 ap_status: "Pending",
                 entry_date_time: new Date().toISOString(), // Added current date and time
             };
-
+            
             // Check if a file is attached and upload it to S3
             if (req.files && req.files.attachment && req.files.attachment.length > 0) {
                 const file = req.files.attachment[0];
@@ -311,6 +313,31 @@ exports.submitSelfAppointment = async (req, res, next) => {
                         error: uploadError.message
                     });
                 }
+            }
+
+            // Handle no_people_images uploads
+            if (req.files['no_people_images'] && req.files['no_people_images'].length > 0) {
+                const noPeopleImageUrls = [];
+                for (const imageFile of req.files['no_people_images']) {
+                    const uploadParamsImage = {
+                        Bucket: process.env.AWS_S3_BUCKETNAME,
+                        Key: `no_people_images/${Date.now()}_${imageFile.originalname}`,
+                        Body: imageFile.buffer,
+                        ContentType: imageFile.mimetype
+                    };
+                    try {
+                        const uploadResult = await s3.upload(uploadParamsImage).promise();
+                        noPeopleImageUrls.push(uploadResult.Location);
+                    } catch (uploadError) {
+                        console.error('Error uploading no_people_image to S3:', uploadError);
+                        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+                            message: 'Failed to upload no_people_images to S3',
+                            error: uploadError.message
+                        });
+                    }
+                }
+                // Store the URLs as a comma-separated string
+                appointmentData.no_people_images = noPeopleImageUrls.join(', ');
             }
 
             // Insert appointment data into the database
@@ -389,6 +416,8 @@ exports.submitGuestAppointment = async (req, res, next) => {
 				ap_status: "Pending",
 				entry_date_time: new Date().toISOString(),
 			};
+            console.log('ooooooooooo',appointmentData);
+            
 
 			// Upload files to S3
 			const uploadPromises = [];
@@ -1781,16 +1810,18 @@ exports.schedule_appointment = async (req, res, next) => {
     // Get User Data By ID
     const user_data = await userModel.findOne(app_data[0].user_id);
     // console.log("user_data",user_data);
-    let full_name, email_id, mobile_no;
+    let full_name, email_id, mobile_no, no_people_emails;
     // Get User Details
     if(app_data[0].for_ap == "me"){
         full_name = user_data[0].full_name;
         email_id = user_data[0].email_id;
         mobile_no = user_data[0].phone_no;
+        no_people_emails = user_data[0]['no_people_emails']
     } else {
         full_name = app_data[0]['full_name'];
         email_id = app_data[0]['email_id'];
         mobile_no = app_data[0]['mobile_no'];
+        no_people_emails = app_data[0]['no_people_emails']
     }
     // console.log("user data",full_name, email_id, mobile_no);
     
@@ -2170,10 +2201,14 @@ exports.schedule_appointment = async (req, res, next) => {
                     // console.log("email template data",templateData);
                     // return;
                     // Send Email
-                    // from email, from name, to, subject, mailtype = html, message = templateData
+                    // from email, from name, to, subject, mailtype = html, message = templateData                    
+                    const emailRecipients = [email_id, no_people_emails].filter(Boolean);
+                    // const emailRecipients = ['das026605@gmail.com', 'rajanikantadas.rit@gmail.com'];
+                    // console.log("llllllllllllllll", additionalEmails)
+                    console.log("pppppppppp", emailRecipients)
                     try{
                         const emailResult = await emailService.sendMailer(
-                            email_id,
+                            emailRecipients,
                             subject,
                             templateData,
                             {

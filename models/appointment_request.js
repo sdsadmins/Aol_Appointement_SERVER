@@ -70,6 +70,7 @@ exports.findOne = async (id) => {
 }
 
 exports.insert = async (object) => {
+try{
     const query = `INSERT INTO appointment_request SET ?`;
     const id = await insertRow(query, object);
     if (id > 0) {
@@ -78,9 +79,11 @@ exports.insert = async (object) => {
     else {
         return this.findOne(object.id);
     }
+}catch(err){
+        console.error(err);        
+};
 
 }
-
 exports.update = async (id, object) => {
     const updateKeys = [];
     let updateValues = [];
