@@ -1816,7 +1816,7 @@ exports.schedule_appointment = async (req, res, next) => {
         full_name = user_data[0].full_name;
         email_id = user_data[0].email_id;
         mobile_no = user_data[0].phone_no;
-        no_people_emails = user_data[0]['no_people_emails']
+        no_people_emails = app_data[0].no_people_emails;
     } else {
         full_name = app_data[0]['full_name'];
         email_id = app_data[0]['email_id'];
@@ -2202,10 +2202,12 @@ exports.schedule_appointment = async (req, res, next) => {
                     // return;
                     // Send Email
                     // from email, from name, to, subject, mailtype = html, message = templateData                    
-                    const emailRecipients = [email_id, no_people_emails].filter(Boolean);
-                    // const emailRecipients = ['das026605@gmail.com', 'rajanikantadas.rit@gmail.com'];
-                    // console.log("llllllllllllllll", additionalEmails)
-                    console.log("pppppppppp", emailRecipients)
+                    const emailRecipients = [email_id]
+                        .concat(no_people_emails ? no_people_emails.split(',') : [])
+                        .filter(email => email && email.trim());
+
+                    console.log("kkkkkkkkkk", emailRecipients);
+
                     try{
                         const emailResult = await emailService.sendMailer(
                             emailRecipients,
