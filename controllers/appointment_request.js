@@ -2167,7 +2167,8 @@ exports.schedule_appointment = async (req, res, next) => {
                     // Replace template variables in the email body
                     email_template_data.body = email_template_data.body
                         .replace('{$AID}',app_data[0].ap_id)
-                        .replace('{$full_name}',full_name)
+                        // .replace('{$full_name}',full_name)
+                        .replace('{$full_name}','Appointee')
                         .replace('{$ji}',ji)
                         .replace('{$date}',new Date(ap_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }))
                         .replace('{$time}',ap_time)

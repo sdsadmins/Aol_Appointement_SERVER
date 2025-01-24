@@ -1,121 +1,122 @@
 const _ = require('lodash');
-const {StatusCodes} = require('http-status-codes');
+const { StatusCodes } = require('http-status-codes');
 const model = require("../models/admin_users");
-const {getPageNo, getPageSize} = require('../utils/helper');
+const { getPageNo, getPageSize } = require('../utils/helper');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { sendMailer } = require('../services/emailService');
 
 exports.getAll = async (req, res, next) => {
-	try {
-		const pageNo = await getPageNo(req);
-		const pageSize = await getPageSize(req);
-		const offset = (pageNo - 1) * pageSize;
-		const totalCount = await model.count();
-		const data = await model.find(offset, pageSize);
-		if (!_.isEmpty(data)) {
-			const result = {
-				pageNo: pageNo,
-				pageSize: pageSize,
-				totalCount: totalCount,
-				data: data,
-			};
-			res.status(StatusCodes.OK).send(result);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
-		}
-	} catch (e) {
-		console.log(`Error in getAll`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+    try {
+        const pageNo = await getPageNo(req);
+        const pageSize = await getPageSize(req);
+        const offset = (pageNo - 1) * pageSize;
+        const totalCount = await model.count();
+        const data = await model.find(offset, pageSize);
+        if (!_.isEmpty(data)) {
+            const result = {
+                pageNo: pageNo,
+                pageSize: pageSize,
+                totalCount: totalCount,
+                data: data,
+            };
+            res.status(StatusCodes.OK).send(result);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
+        }
+    } catch (e) {
+        console.log(`Error in getAll`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.getOne = async (req, res, next) => {
-	try {
-		const id = req.params.id;
+    try {
+        const id = req.params.id;
 
-		const data = await model.findOne(id);
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data[0]);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
-		}
-	} catch (e) {
-		console.log(`Error in getById`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+        const data = await model.findOne(id);
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send(data[0]);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
+        }
+    } catch (e) {
+        console.log(`Error in getById`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.create = async (req, res, next) => {
-	try {
-		const data = await model.insert(req.body);
-		if (data) {
-			res.status(StatusCodes.CREATED).send({message:'Record created', data:data});
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad Request!"});
-		}
-	} catch (e) {
-		console.log(`Error in create`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+    try {
+        const data = await model.insert(req.body);
+        if (data) {
+            res.status(StatusCodes.CREATED).send({ message: 'Record created', data: data });
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad Request!" });
+        }
+    } catch (e) {
+        console.log(`Error in create`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.update = async (req, res, next) => {
-	try {
-		const id = req.params.id;
+    try {
+        const id = req.params.id;
 
-		//const id = req.params.id;
-		const data = await model.update(id, req.body);
-		if (!_.isEmpty(data)) {
-			res.status(StatusCodes.OK).send(data[0]);
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad request."});
-		}
-	} catch (e) {
-		console.log(`Error in update`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+        //const id = req.params.id;
+        const data = await model.update(id, req.body);
+        if (!_.isEmpty(data)) {
+            res.status(StatusCodes.OK).send(data[0]);
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
+        }
+    } catch (e) {
+        console.log(`Error in update`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.remove = async (req, res, next) => {
-	try {
-		const id = req.params.id;
+    try {
+        const id = req.params.id;
 
-		//const id = req.params.id;
-		const data = await model.remove(id);
-		if (data) {
-			res.status(StatusCodes.OK).send({message : "Resource deleted"});
-		} else {
-			res.status(StatusCodes.BAD_REQUEST).send({message : "Bad request."});
-		}
-	} catch (e) {
-		console.log(`Error in remove`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+        //const id = req.params.id;
+        const data = await model.remove(id);
+        if (data) {
+            res.status(StatusCodes.OK).send({ message: "Resource deleted" });
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).send({ message: "Bad request." });
+        }
+    } catch (e) {
+        console.log(`Error in remove`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 exports.search = async (req, res, next) => {
-	try {
-		const pageNo = await getPageNo(req);
-		const pageSize = await getPageSize(req);
-		const offset = (pageNo - 1) * pageSize;
-		const searchKey = req.params.searchKey;
-		const totalCount = await model.searchCount(searchKey.toLowerCase());
-		const data = await model.search(offset, pageSize, searchKey.toLowerCase());
-		if (!_.isEmpty(data)) {
-			const result = {
-				pageNo: pageNo,
-				pageSize: pageSize,
-				totalCount: totalCount,
-				records: data,
-			};
-			res.status(StatusCodes.OK).send(result);
-		} else {
-			res.status(StatusCodes.NOT_FOUND).send({message : "No record found"});
-		}
-	} catch (e) {
-		console.log(`Error in search`, e);
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({message : e.message});
-	}
+    try {
+        const pageNo = await getPageNo(req);
+        const pageSize = await getPageSize(req);
+        const offset = (pageNo - 1) * pageSize;
+        const searchKey = req.params.searchKey;
+        const totalCount = await model.searchCount(searchKey.toLowerCase());
+        const data = await model.search(offset, pageSize, searchKey.toLowerCase());
+        if (!_.isEmpty(data)) {
+            const result = {
+                pageNo: pageNo,
+                pageSize: pageSize,
+                totalCount: totalCount,
+                records: data,
+            };
+            res.status(StatusCodes.OK).send(result);
+        } else {
+            res.status(StatusCodes.NOT_FOUND).send({ message: "No record found" });
+        }
+    } catch (e) {
+        console.log(`Error in search`, e);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({ message: e.message });
+    }
 };
 
 
@@ -250,3 +251,52 @@ exports.adminUserChangePassword = async (req, res, next) => {
     }
 };
 
+exports.forgotPassword = async (req, res) => {
+    const { email_id } = req.body;
+    const lowerEmail = email_id.toLowerCase();
+
+    try {
+        const user = await model.findOneByEmail(lowerEmail);
+
+        if (!user || !user[0]) {
+            return res.status(404).json({
+                error: 'This email id is not registered with us. please create a account.'
+            });
+        }
+
+        const tempPassword = Math.random().toString(36).slice(-8);
+
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+        const updated = await model.updatePasswordByEmail(email_id, hashedPassword);
+
+        if (!updated) {
+            return res.status(500).send({
+                message: "Failed to update password"
+            });
+        }
+        const emailContent = `
+        <p>Dear ${user[0].full_name},</p>
+        <p>This is your new password: <b>${tempPassword}</b></p>
+        <p>You can change this password after logging in</p>
+        <p>If you didn't request this, please ignore this email.</p>
+        <p>Best regards, <br>Your Application Team</br></p>
+        `;
+
+        await sendMailer(
+            lowerEmail,
+            'Password Recovery',
+            emailContent
+        )
+
+        return res.status(StatusCodes.OK).json({
+            message: 'Please check your email for your password.'
+        });
+
+    } catch (err) {
+        console.error('Error in forgot password process:', err);
+        return res.status(500).json({
+            error: 'An error occourred while processing your request.'
+        });
+    }
+};

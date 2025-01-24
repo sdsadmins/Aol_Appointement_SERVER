@@ -16,5 +16,5 @@ router.get('/search/:searchKey', checkAuth, controller.search);
 router.post('/decryptAndUpdateSingleAdmin', controller.decryptAndUpdateSingleAdmin);
 router.post('/adminLogin', controller.adminLogin);
 router.post('/change-password/:user_id', checkAuth, controller.adminUserChangePassword);
-
+router.post('/forgot-password-admin', controller.forgotPassword)
 module.exports = router;
