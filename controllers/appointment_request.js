@@ -3046,7 +3046,7 @@ const isValidDate = (date) => {
 exports.getAppointmentsByDateRange = async (req, res, next) => {
    
     try {
-        const { from_date, to_date, entry_date_time } = req.body;
+        const { from_date, to_date, entry_date_time, full_name } = req.body;
 
         // Validate date inputs
         if ((from_date && !isValidDate(from_date)) || 
@@ -3058,25 +3058,27 @@ exports.getAppointmentsByDateRange = async (req, res, next) => {
             });
         }
 
-        if (!from_date && !to_date && !entry_date_time) {
+        if (!from_date && !to_date && !entry_date_time && !full_name) {
             return res.status(400).send({ 
-                message: "At least one search parameter (from_date, to_date, or entry_date_time) is required", 
+                message: "At least one search parameter (from_date, to_date, entry_date_time or full_name) is required", 
                 success: false 
             });
         }
 
-        const appointments = await model.getAppointmentsByDateRange(from_date, to_date, entry_date_time);
+        const appointments = await model.getAppointmentsByDateRange(from_date, to_date, entry_date_time, full_name);
 
         if (appointments && appointments.length > 0) {
             res.status(200).send({ 
                 message: `${appointments.length} appointments found`,
                 success: true,
+                code:200,
                 data: appointments 
             });
         } else {
             res.status(404).send({ 
                 message: "No appointments found for the specified criteria",
-                success: false 
+                success: false,
+                code: 404
             });
         }
     } catch (error) {
@@ -3084,6 +3086,7 @@ exports.getAppointmentsByDateRange = async (req, res, next) => {
         res.status(500).send({ 
             message: 'Failed to fetch appointments',
             success: false,
+            code: 500,
             error: error.message 
         });
     }

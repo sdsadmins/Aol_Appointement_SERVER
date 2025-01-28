@@ -763,7 +763,7 @@ const isValidDate = (date) => {
     return !isNaN(new Date(date).getTime());
 };
 
-exports.getAppointmentsByDateRange = async (fromDate, toDate, entryDateTime) => {
+exports.getAppointmentsByDateRange = async (fromDate, toDate, entryDateTime, fullName) => {
     let query = `
         SELECT * 
         FROM appointment_request 
@@ -785,6 +785,11 @@ exports.getAppointmentsByDateRange = async (fromDate, toDate, entryDateTime) => 
     if (entryDateTime && isValidDate(entryDateTime)) {
         query += ` AND DATE(entry_date_time) = DATE(?)`;
         params.push(entryDateTime.split('T')[0]); // Ensure only date is passed
+    }
+
+    if(fullName && fullName.trim().length>0){
+        query += ` AND full_name LIKE ?`;
+        params.push(`%${fullName.trim()}%`);
     }
 
     query += ` ORDER BY ap_date DESC`;
