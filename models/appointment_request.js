@@ -771,27 +771,31 @@ exports.getAppointmentsByDateRange = async (fromDate, toDate, entryDateTime, ful
     `;
     const params = [];
 
-    // Add conditions for dates without time component
-    if (fromDate && isValidDate(fromDate)) {
-        query += ` AND DATE(from_date) = DATE(?)`;
+    // Add conditions for date range
+    if (fromDate && toDate && isValidDate(fromDate) && isValidDate(toDate)) {
+        query += ` AND DATE(ap_date) BETWEEN DATE(?) AND DATE(?)`;
+        params.push(fromDate.split('T')[0], toDate.split('T')[0]); // Ensure only date is passed
+    } else if (fromDate && isValidDate(fromDate)) {
+        query += ` AND DATE(ap_date) >= DATE(?)`;
         params.push(fromDate.split('T')[0]); // Ensure only date is passed
-    }
-
-    if (toDate && isValidDate(toDate)) {
-        query += ` AND DATE(to_date) = DATE(?)`;
+    } else if (toDate && isValidDate(toDate)) {
+        query += ` AND DATE(ap_date) <= DATE(?)`;
         params.push(toDate.split('T')[0]); // Ensure only date is passed
     }
 
+    // Add condition for entry_date_time
     if (entryDateTime && isValidDate(entryDateTime)) {
         query += ` AND DATE(entry_date_time) = DATE(?)`;
         params.push(entryDateTime.split('T')[0]); // Ensure only date is passed
     }
 
-    if(fullName && fullName.trim().length>0){
+    // Add condition for fullName
+    if (fullName && fullName.trim().length > 0) {
         query += ` AND full_name LIKE ?`;
         params.push(`%${fullName.trim()}%`);
     }
 
+    // Order by appointment date descending
     query += ` ORDER BY ap_date DESC`;
 
     try {
@@ -810,6 +814,7 @@ exports.getAppointmentsByDateRange = async (fromDate, toDate, entryDateTime, ful
         throw error;
     }
 };
+
 
 exports.getAllAppointments = async () => {
     const query = `SELECT * FROM appointment_request WHERE deleted_app != 0 ORDER BY ap_date DESC`; // Query to get all non-deleted appointments, latest first
