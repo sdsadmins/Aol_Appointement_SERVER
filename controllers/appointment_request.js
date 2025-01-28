@@ -3017,8 +3017,9 @@ exports.getAppointmentInfo = async (req, res, next) => {
 };
 
 exports.getAppointmentByIdOrName = async (req, res, next) => {
+
     try {
-        const { ap_id, full_name } = req.body; 
+        const { ap_id, full_name } = req.query; 
 
         const appointmentData = await model.findByIdOrName(ap_id, full_name);
 
@@ -3043,6 +3044,7 @@ const isValidDate = (date) => {
 };
 
 exports.getAppointmentsByDateRange = async (req, res, next) => {
+   
     try {
         const { from_date, to_date, entry_date_time } = req.body;
 
