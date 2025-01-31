@@ -298,6 +298,7 @@ exports.forgotPassword = async (req, res) => {
             emailTemplate[0].template_subject,
             emailContent
         );
+        console.log("testttttt");
 
         return res.status(StatusCodes.OK).json({
             message: 'Please check your email for your password.'
