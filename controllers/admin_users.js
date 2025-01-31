@@ -5,6 +5,7 @@ const { getPageNo, getPageSize } = require('../utils/helper');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { sendMailer } = require('../services/emailService');
+const emailTemplateModel = require("../models/email_template");
 
 exports.getAll = async (req, res, next) => {
     try {
@@ -260,14 +261,24 @@ exports.forgotPassword = async (req, res) => {
 
         if (!user || !user[0]) {
             return res.status(404).json({
-                error: 'This email id is not registered with us. please create a account.'
+                error: 'This email id is not registered with us. please create an account.'
+            });
+        }
+
+        // Get user's full name from the database result
+        const userFullName = user[0].full_name;
+        // console.log('nameeeeeeeeeeeee',userFullName)
+
+        const emailTemplate = await emailTemplateModel.findOne(6);
+
+        if (!emailTemplate || !emailTemplate[0]) {
+            return res.status(500).send({
+                message: "Failed to retrieve email template"
             });
         }
 
         const tempPassword = Math.random().toString(36).slice(-8);
-
         const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
         const updated = await model.updatePasswordByEmail(email_id, hashedPassword);
 
         if (!updated) {
@@ -275,19 +286,18 @@ exports.forgotPassword = async (req, res) => {
                 message: "Failed to update password"
             });
         }
-        const emailContent = `
-        <p>Dear ${user[0].full_name},</p>
-        <p>This is your new password: <b>${tempPassword}</b></p>
-        <p>You can change this password after logging in</p>
-        <p>If you didn't request this, please ignore this email.</p>
-        <p>Best regards, <br>Your Application Team</br></p>
-        `;
+        let ji = 'ji';
+        const emailContent = emailTemplate[0].template_data
+            .replace('{$ji}', ji)
+            .replace('{$full_name}', userFullName)
+            .replace('{$username}', email_id)
+            .replace('{$password}', tempPassword);
 
         await sendMailer(
             lowerEmail,
-            'Password Recovery',
+            emailTemplate[0].template_subject,
             emailContent
-        )
+        );
 
         return res.status(StatusCodes.OK).json({
             message: 'Please check your email for your password.'
@@ -296,7 +306,7 @@ exports.forgotPassword = async (req, res) => {
     } catch (err) {
         console.error('Error in forgot password process:', err);
         return res.status(500).json({
-            error: 'An error occourred while processing your request.'
+            error: 'An error occurred while processing your request.'
         });
     }
 };
