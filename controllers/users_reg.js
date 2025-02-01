@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const { sendMailer } = require('../services/emailService');
 const fs = require('fs');
 const AWS = require('aws-sdk');
+const emailTemplateModel = require("../models/email_template");
 
 // Configure AWS S3 
 AWS.config.update({
@@ -599,6 +600,15 @@ exports.forgotPassword = async (req, res) => {
                 error: 'This email id is not registered with us. Please create a new account.'
             });
         }
+        const userFullName = user[0].full_name;
+        const emailTemplate = await emailTemplateModel.findOne(6);
+
+        if (!emailTemplate || !emailTemplate[0]) {
+            return res.status(500).send({
+                message: "Failed to retrieve email template"
+            });
+        }
+
         const tempPassword = Math.random().toString(36).slice(-8);
         // Decrypt the password
         // const decryptedPassword = decryptPassword(user[0].password); // Use the decrypt function
@@ -613,22 +623,20 @@ exports.forgotPassword = async (req, res) => {
         // const resetLink = `${req.protocol}://${req.get('host')}/reset-password?email=${encodeURIComponent(lowerEmail)}`;
 
         // Prepare email content
-        const emailContent = `
-            <p>Dear ${user[0].full_name},</p>
-            <p>This is your new password: <b>${tempPassword}</b></p>
-            <p>You can change this password after logging in</p>
-            <p>If you didn't request this, please ignore this email.</p>
-            <p>Best regards,<br>Your Application Team</p>
-        `;
+        let ji = 'ji';
+        const emailContent = emailTemplate[0].template_data
+            .replace('{$ji}', ji)
+            .replace('{$full_name}', userFullName)
+            .replace('{$username}', email_id)
+            .replace('{$password}', tempPassword);
 
-        // Send email using the emailService
         await sendMailer(
             lowerEmail,
-            'Password Recovery',
+            emailTemplate[0].template_subject,
             emailContent
         );
 
-        return res.status(200).json({
+        return res.status(StatusCodes.OK).json({
             message: 'Please check your email for your password.'
         });
 
@@ -647,14 +655,14 @@ exports.updateProfile = async (req, res) => {
         // Ensure multer's upload middleware is used correctly
         uploadProfile(req, res, async (err) => {
             if (err) {
-                return res.status(400).json({ 
-                    message: err.message 
+                return res.status(400).json({
+                    message: err.message
                 });
             }
 
             try {
                 const userData = req.body;
-                
+
                 // If a file is uploaded, include the filename in userData
                 if (req.file) {
                     const file = req.file; // Get the uploaded file
@@ -684,22 +692,22 @@ exports.updateProfile = async (req, res) => {
                         data: data[0]
                     });
                 } else {
-                    res.status(404).json({ 
-                        message: "User not found" 
+                    res.status(404).json({
+                        message: "User not found"
                     });
                 }
             } catch (error) {
                 console.error('Error updating profile:', error);
-                res.status(500).json({ 
+                res.status(500).json({
                     message: "Error updating profile",
-                    error: error.message 
+                    error: error.message
                 });
             }
         });
     } catch (e) {
         console.error('Error in updateProfile:', e);
-        res.status(500).json({ 
-            message: e.message 
+        res.status(500).json({
+            message: e.message
         });
     }
 };
