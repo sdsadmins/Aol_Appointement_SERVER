@@ -8,6 +8,7 @@ const emailFooterModel = require("../models/email_footer");
 const smsModel = require("../models/sms_templates");
 const locModel = require("../models/offiline_locations");
 const userModel = require("../models/users_reg");
+const guestModel = require("../models/appointment_guest")
 
 const { getPageNo, getPageSize } = require('../utils/helper');
 const multer = require('multer');
@@ -262,9 +263,6 @@ exports.submitSelfAppointment = async (req, res, next) => {
             const appointmentData = {
                 ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
                 user_id: userId,
-                // full_name: req.body.user_full_name,
-                // email_id: req.body.user_email,
-                // mobile_no: req.body.user_phone,
                 ap_location: req.body.ap_location,
                 designation: req.body.designation,
                 meet_subject: req.body.meet_subject || '',
@@ -282,26 +280,21 @@ exports.submitSelfAppointment = async (req, res, next) => {
                 dop: req.body.dop,
                 toa: req.body.toa || 'offline',
                 curr_loc: req.body.curr_loc || '',
-                // selCountry: req.body.selCountry || '',
-                // selState: req.body.selState || '',
-                // selCity: req.body.selCity || '',
                 for_ap: "me",
                 ap_status: "Pending",
-                entry_date_time: new Date().toISOString(), // Added current date and time
+                entry_date_time: new Date().toISOString(),
             };
-            
+
             // Check if a file is attached and upload it to S3
             if (req.files && req.files.attachment && req.files.attachment.length > 0) {
                 const file = req.files.attachment[0];
-				console.log("filefilefile",file)
                 const uploadParams = {
                     Bucket: process.env.AWS_S3_BUCKETNAME,
                     Key: `attachments/${Date.now()}_${file.originalname}`, // Unique file name
                     Body: file.buffer,
                     ContentType: file.mimetype
                 };
-				console.log("uploadParamsuploadParams",uploadParams);
-				
+
                 try {
                     const uploadResult = await s3.upload(uploadParams).promise();
                     console.log('File uploaded successfully:', uploadResult.Location);
@@ -315,43 +308,72 @@ exports.submitSelfAppointment = async (req, res, next) => {
                 }
             }
 
-            // Handle no_people_images uploads
+            // Insert appointment data into the database
+            const insertedAppointment = await model.insert(appointmentData);
+            
+            const appointment = insertedAppointment && insertedAppointment.length > 0 ? insertedAppointment[0] : null;
+            // Ensure appointment is created successfully and ap_id is retrieved
+            if (!appointment || !appointment.ap_id) {
+                console.error("Inserted Appointment Data:", insertedAppointment.ap_id); // Log the inserted appointment data
+                return res.status(StatusCodes.BAD_REQUEST).send({
+                    message: "Failed to create appointment or retrieve ap_id"
+                });
+            }
+
+            console.log("Appointment created successfully:", insertedAppointment);
+
+            // Declare guestDetails outside to avoid reference error
+            let guestDetails = [];
+
+            // Handle guest images and details upload
             if (req.files['no_people_images'] && req.files['no_people_images'].length > 0) {
-                const noPeopleImageUrls = [];
-                for (const imageFile of req.files['no_people_images']) {
+                for (let i = 0; i < req.files['no_people_images'].length; i++) {
+                    const imageFile = req.files['no_people_images'][i];
                     const uploadParamsImage = {
                         Bucket: process.env.AWS_S3_BUCKETNAME,
                         Key: `no_people_images/${Date.now()}_${imageFile.originalname}`,
                         Body: imageFile.buffer,
                         ContentType: imageFile.mimetype
                     };
+
                     try {
                         const uploadResult = await s3.upload(uploadParamsImage).promise();
-                        noPeopleImageUrls.push(uploadResult.Location);
+                        console.log(`Guest image uploaded successfully: ${uploadResult.Location}`);
+
+                        // Create guest entry
+                        const guest = {
+                            ap_id: appointment.ap_id, // Ensure correct ap_id is assigned
+                            guest_name: req.body.no_people_names.split(',')[i] || "Unknown",
+                            guest_contact: req.body.no_people_numbers.split(',')[i] || "N/A",
+                            guest_age: req.body.no_people_ages ? req.body.no_people_ages.split(',')[i] : null,
+                            guest_photo: uploadResult.Location,
+                            photo_status: "Uploaded successfully",
+                            admit_status: null,
+                            entry_date: new Date().toISOString()
+                        };
+
+                        // Insert guest into the database
+                        const guestInsert = await guestModel.insert(guest);
+                        if (guestInsert) {
+                            guestDetails.push(guestInsert);
+                        }
                     } catch (uploadError) {
-                        console.error('Error uploading no_people_image to S3:', uploadError);
+                        console.error('Error uploading guest image to S3:', uploadError);
                         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
-                            message: 'Failed to upload no_people_images to S3',
+                            message: 'Failed to upload guest images to S3',
                             error: uploadError.message
                         });
                     }
                 }
-                // Store the URLs as a comma-separated string
-                appointmentData.no_people_images = noPeopleImageUrls.join(', ');
+                appointmentData.no_people_images = guestDetails.map(g => g.guest_photo).join(', ');
             }
 
-            // Insert appointment data into the database
-            const data = await model.insert(appointmentData);
-            if (data) {
-                res.status(StatusCodes.CREATED).send({
-                    message: 'Appointment created successfully',
-                    data: data
-                });
-            } else {
-                res.status(StatusCodes.BAD_REQUEST).send({
-                    message: "Failed to create appointment"
-                });
-            }
+            res.status(StatusCodes.CREATED).send({
+                message: 'Appointment created successfully',
+                appointment: insertedAppointment,
+                guests: guestDetails
+            });
+
         } catch (e) {
             console.log(`Error in submitSelfAppointment`, e);
             res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
@@ -360,6 +382,9 @@ exports.submitSelfAppointment = async (req, res, next) => {
         }
     });
 };
+
+
+
 
 exports.submitGuestAppointment = async (req, res, next) => {
     upload(req, res, async (err) => {
