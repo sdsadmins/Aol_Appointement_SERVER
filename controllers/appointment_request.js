@@ -78,6 +78,7 @@ const uploadAdmin = multer({
         fileSize: 5 * 1024 * 1024 // Limit file size to 5MB
     }
 }).single("photo");
+console.log("testttt");
 
 // Add these imports at the top of your file
 const AWS = require('aws-sdk');
