@@ -8,6 +8,7 @@ const emailFooterModel = require("../models/email_footer");
 const smsModel = require("../models/sms_templates");
 const locModel = require("../models/offiline_locations");
 const userModel = require("../models/users_reg");
+const guestModel = require("../models/appointment_guest")
 
 const { getPageNo, getPageSize } = require('../utils/helper');
 const multer = require('multer');
