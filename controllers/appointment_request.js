@@ -3066,7 +3066,7 @@ exports.getAppointmentsByDateRange = async (req, res, next) => {
         }
 
         const appointments = await model.getAppointmentsByDateRange(from_date, to_date, entry_date_time, full_name);
-
+        console.log("asdf")
         if (appointments && appointments.length > 0) {
             res.status(200).send({ 
                 message: `${appointments.length} appointments found`,
