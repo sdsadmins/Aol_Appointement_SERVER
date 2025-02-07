@@ -393,89 +393,83 @@ exports.submitGuestAppointment = async (req, res, next) => {
             });
         }
 
-		try {
-			const userId = req.params.user_id;
+        try {
+            const userId = req.params.user_id;
+            const attachments = req.files['attachment'] ? req.files['attachment'] : [];
+            const pictures = req.files['picture'] ? req.files['picture'] : [];
+            const noPeopleImages = req.files['no_people_images'] ? req.files['no_people_images'] : [];
 
-			// Ensure files are captured correctly
-			const attachments = req.files['attachment'] ? req.files['attachment'] : [];
-			const pictures = req.files['picture'] ? req.files['picture'] : [];
-			const noPeopleImages = req.files['no_people_images'] ? req.files['no_people_images'] : [];
+            let noPeopleImageUrls = [];
 
-			const appointmentData = {
-				ap_id: Math.floor(100000 + Math.random() * 900000), // Generate a random 6-digit number
-				user_id: userId,
-				ap_location: req.body.ap_location,
-				full_name: req.body.full_name,
-				email_id: req.body.email_id,
-				country_code: req.body.country_code,
-				mobile_no: req.body.mobile_no,
-				designation: req.body.designation,
-				country: req.body.country,
-				state: req.body.state,
-				city: req.body.city,
-				meet_purpose: req.body.meet_purpose,
-				no_people: req.body.no_people,
-				from_date: req.body.from_other_date,
-				to_date: req.body.to_other_date,
-				picture: '', // Placeholder for S3 URL
-				attachment: '', // Placeholder for S3 URL
-				toa: req.body.toa || 'offline',
-				curr_loc: req.body.curr_loc || '',
-				currently_doing: req.body.currently_doing,
-				dop: req.body.dop,
-				selCountry: req.body.selCountry || '',
-				selState: req.body.selState || '',
-				selCity: req.body.selCity || '',
-				no_people_names: req.body.no_people_names,
-				no_people_numbers: req.body.no_people_numbers,
-				no_people_eleven_details: req.body.no_people_eleven_details,
-				ref_email_id: req.body.ref_email_id,
-				ref_country_code: req.body.ref_country_code,
-				ref_mobile_no: req.body.ref_mobile_no,
-				designationcomp: req.body.designationcomp,
-				no_people_images: '', // Placeholder for S3 URLs
-				no_people_emails: req.body.no_people_emails || '', // Ensure no_people_emails is not null
-				for_ap: "other",
-				ap_status: "Pending",
-				entry_date_time: new Date().toISOString(),
-			};
-            console.log('ooooooooooo',appointmentData);
-            
+            const appointmentData = {
+                ap_id: Math.floor(100000 + Math.random() * 900000),
+                user_id: userId,
+                for_ap: "other",
+                ap_location: req.body.ap_location,
+                full_name: req.body.full_name,
+                email_id: req.body.email_id,
+                country_code: req.body.country_code,
+                mobile_no: req.body.mobile_no,
+                designation: req.body.designation,
+                country: req.body.country,
+                state: req.body.state,
+                city: req.body.city,
+                meet_purpose: req.body.meet_purpose,
+                no_people: req.body.no_people,
+                from_date: req.body.from_other_date,
+                to_date: req.body.to_other_date,
+                picture: '',
+                attachment: '',
+                toa: req.body.toa || 'offline',
+                curr_loc: req.body.curr_loc || '',
+                currently_doing: req.body.currently_doing,
+                dop: req.body.dop,
+                selCountry: req.body.selCountry || '',
+                selState: req.body.selState || '',
+                selCity: req.body.selCity || '',
+                no_people_names: req.body.no_people_names,
+                no_people_numbers: req.body.no_people_numbers,
+                no_people_eleven_details: req.body.no_people_eleven_details,
+                ref_email_id: req.body.ref_email_id,
+                ref_country_code: req.body.ref_country_code,
+                ref_mobile_no: req.body.ref_mobile_no,
+                designationcomp: req.body.designationcomp,
+                no_people_images: '',
+                no_people_emails: req.body.no_people_emails || '',
+                ap_status: "Pending",
+                entry_date_time: new Date().toISOString(),
+            };
 
-			// Upload files to S3
-			const uploadPromises = [];
+            // Upload files to S3
+            const uploadPromises = [];
 
-			// Upload attachment if exists
-			if (attachments.length > 0) {
-				const attachmentFile = attachments[0];
-				const uploadParamsAttachment = {
-					Bucket: process.env.AWS_S3_BUCKETNAME,
-					Key: `attachments/${Date.now()}_${attachmentFile.originalname}`, // Unique file name
-					Body: attachmentFile.buffer,
-					ContentType: attachmentFile.mimetype
-				};
-				uploadPromises.push(s3.upload(uploadParamsAttachment).promise().then(uploadResult => {
-					appointmentData.attachment = uploadResult.Location; // Assign S3 URL to the attachment field
-				}));
-			}
+            if (attachments.length > 0) {
+                const attachmentFile = attachments[0];
+                const uploadParamsAttachment = {
+                    Bucket: process.env.AWS_S3_BUCKETNAME,
+                    Key: `attachments/${Date.now()}_${attachmentFile.originalname}`,
+                    Body: attachmentFile.buffer,
+                    ContentType: attachmentFile.mimetype
+                };
+                uploadPromises.push(s3.upload(uploadParamsAttachment).promise().then(uploadResult => {
+                    appointmentData.attachment = uploadResult.Location;
+                }));
+            }
 
-			// Upload picture if exists
-			if (pictures.length > 0) {
-				const pictureFile = pictures[0];
-				const uploadParamsPicture = {
-					Bucket: process.env.AWS_S3_BUCKETNAME,
-					Key: `pictures/${Date.now()}_${pictureFile.originalname}`, // Unique file name
-					Body: pictureFile.buffer,
-					ContentType: pictureFile.mimetype
-				};
-				uploadPromises.push(s3.upload(uploadParamsPicture).promise().then(uploadResult => {
-					appointmentData.picture = uploadResult.Location; // Assign S3 URL to the picture field
-				}));
-			}
+            if (pictures.length > 0) {
+                const pictureFile = pictures[0];
+                const uploadParamsPicture = {
+                    Bucket: process.env.AWS_S3_BUCKETNAME,
+                    Key: `pictures/${Date.now()}_${pictureFile.originalname}`,
+                    Body: pictureFile.buffer,
+                    ContentType: pictureFile.mimetype
+                };
+                uploadPromises.push(s3.upload(uploadParamsPicture).promise().then(uploadResult => {
+                    appointmentData.picture = uploadResult.Location;
+                }));
+            }
 
-            // Handle no_people_images uploads
             if (noPeopleImages.length > 0) {
-                const noPeopleImageUrls = [];
                 for (const imageFile of noPeopleImages) {
                     const uploadParamsImage = {
                         Bucket: process.env.AWS_S3_BUCKETNAME,
@@ -484,40 +478,74 @@ exports.submitGuestAppointment = async (req, res, next) => {
                         ContentType: imageFile.mimetype
                     };
                     uploadPromises.push(
-                        s3.upload(uploadParamsImage).promise()
-                            .then(uploadResult => {
-                                noPeopleImageUrls.push(uploadResult.Location);
-                            })
+                        s3.upload(uploadParamsImage).promise().then(uploadResult => {
+                            noPeopleImageUrls.push(uploadResult.Location);
+                        })
                     );
                 }
-                // After all uploads complete, join URLs with comma
-                await Promise.all(uploadPromises);
-                appointmentData.no_people_images = noPeopleImageUrls.join(', '); // Store as comma-separated string
             }
 
-			// Wait for all uploads to complete
-			await Promise.all(uploadPromises);
+            await Promise.all(uploadPromises);
+            appointmentData.no_people_images = noPeopleImageUrls.join(', ');
 
-			// Insert appointment data into the database
-			const data = await model.insert(appointmentData);
-			if (data) {
-				res.status(StatusCodes.CREATED).send({
-					message: 'Guest appointment created',
-					data: data
-				});
-			} else {
-				res.status(StatusCodes.BAD_REQUEST).send({
-					message: "Bad Request!"
-				});
-			}
-		} catch (e) {
-			console.log(`Error in submitGuestAppointment`, e);
-			res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
-				message: e.message
-			});
-		}
-	});
+            const data = await model.insert(appointmentData);
+            if (data) {
+                const guestNames = req.body.no_people_names.split(',');
+                const guestNumbers = req.body.no_people_numbers.split(',');
+                const guestAges = req.body.no_people_ages ? req.body.no_people_ages.split(',') : [];
+                const guestEmails = req.body.no_people_emails ? req.body.no_people_emails.split(',') : [];
+                
+                const guestsData = guestNames.map((name, index) => ({
+                    ap_id: appointmentData.ap_id,
+                    guest_name: name.trim(),
+                    guest_contact: guestNumbers[index]?.trim() || '',
+                    guest_age: guestAges[index] ? guestAges[index]?.trim() : null,
+                    guest_photo: noPeopleImageUrls[index] || '',
+                    photo_status: "Uploaded successfully",
+                    admit_status: null,
+                    entry_date: new Date().toISOString()
+                }));
+
+                for (const guest of guestsData) {
+                    await guestModel.insert(guest);
+                }
+
+                // Fetch only guests for this specific appointment
+                const guestsFromDb = await guestModel.findByAppointmentId(appointmentData.ap_id); // Add this method to your guest model
+
+                // Transform guests into required format 
+                const formattedGuests = guestsFromDb.map(guest => ({
+                    id: guest.id,
+                    ap_id: guest.ap_id,
+                    guest_name: guest.guest_name,
+                    guest_contact: guest.guest_contact, 
+                    guest_age: guest.guest_age,
+                    guest_photo: guest.guest_photo,
+                    photo_status: guest.photo_status,
+                    admit_status: guest.admit_status,
+                    entry_date: guest.entry_date
+                }));
+
+                res.status(StatusCodes.CREATED).send({
+                    message: 'Guest appointment created successfully',
+                    appointment: [data],
+                    guests: formattedGuests // Now only contains guests for this appointment
+                });
+            } else {
+                res.status(StatusCodes.BAD_REQUEST).send({
+                    message: "Bad Request!"
+                });
+            }
+        } catch (e) {
+            console.log(`Error in submitGuestAppointment`, e);
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send({
+                message: e.message
+            });
+        }
+    });
 };
+
+
 
 exports.getUserHistory = async (req, res, next) => {
 	try {

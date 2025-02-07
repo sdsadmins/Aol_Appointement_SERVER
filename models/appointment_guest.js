@@ -98,3 +98,14 @@ exports.findOneGuest = async (guestId) => {
     console.log("testtt")
     return getRows(query, [guestId]);
 };
+
+exports.findByAppointmentId = async (appointmentId) => {
+    try {
+        const query = 'SELECT * FROM appointment_guest WHERE ap_id = ?';
+        const result = await getRows(query, [appointmentId]);
+        return result;
+    } catch (error) {
+        console.error('Error in findByAppointmentId:', error);
+        throw error;
+    }
+};
